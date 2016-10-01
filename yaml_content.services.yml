@@ -1,3 +1,5 @@
-plugin.manager.yaml_content:
-  class: Drupal\yaml_content\ImportProcessorPluginManager
-  parent: default_plugin_manager
+services:
+  plugin.manager.yaml_content:
+    class: Drupal\yaml_content\ImportProcessorPluginManager
+    parent: default_plugin_manager
+    arguments: ['@container.namespaces', '@cache.default', '@module_handler']
