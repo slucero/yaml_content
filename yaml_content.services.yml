@@ -1,0 +1,3 @@
+plugin.manager.yaml_content:
+  class: Drupal\yaml_content\ImportProcessorPluginManager
+  parent: default_plugin_manager
