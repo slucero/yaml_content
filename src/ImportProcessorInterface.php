@@ -1,10 +1,7 @@
 <?php
 
-namespace Drupal\yaml_content\Plugin\YamlContent;
+namespace Drupal\yaml_content;
 
-
-use Drupal\Component\Plugin\PluginInspectionInterface;
-
-interface ImportProcessorInterface extends PluginInspectionInterface {
+interface ImportProcessorInterface extends ContentProcessorInterface {
 
 }

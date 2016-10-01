@@ -1,5 +1,5 @@
 services:
   plugin.manager.yaml_content:
-    class: Drupal\yaml_content\ImportProcessorPluginManager
+    class: Drupal\yaml_content\ContentProcessorPluginManager
     parent: default_plugin_manager
     arguments: ['@container.namespaces', '@cache.default', '@module_handler']

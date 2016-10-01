@@ -5,7 +5,7 @@ namespace Drupal\yaml_content\Annotation;
 
 use Drupal\Component\Annotation\Plugin;
 
-class ImportProcessor extends Plugin {
+class ContentProcessor extends Plugin {
 
   /**
    * The plugin ID.
