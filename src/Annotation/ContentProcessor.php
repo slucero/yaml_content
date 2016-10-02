@@ -5,6 +5,11 @@ namespace Drupal\yaml_content\Annotation;
 
 use Drupal\Component\Annotation\Plugin;
 
+/**
+ * Defines a ContentProcessor annotation object.
+ *
+ * @Annotation
+ */
 class ContentProcessor extends Plugin {
 
   /**
@@ -31,5 +36,18 @@ class ContentProcessor extends Plugin {
    * @ingroup plugin_translatable
    */
   public $description;
-  
+
+  /**
+   * Whether the processor supports import operations.
+   *
+   * @var bool
+   */
+  public $import;
+
+  /**
+   * Whether the processor supports export operations.
+   *
+   * @var bool
+   */
+  public $export;
 }
