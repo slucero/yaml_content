@@ -11,4 +11,11 @@ abstract class ImportProcessorBase extends PluginBase implements ImportProcessor
    * Indicate that this plugin supports import operations.
    */
   public $import = TRUE;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function execute() {
+
+  }
 }
