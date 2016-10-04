@@ -10,6 +10,7 @@ use Drupal\yaml_content\ImportProcessorBase;
  * @ContentProcessor(
  *   id = "entity_reference_import_processor",
  *   label = @Translation("Entity Reference Import Processor"),
+ *   import = TRUE,
  * )
  */
 class EntityReferenceImportProcessor extends ImportProcessorBase {
