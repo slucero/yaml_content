@@ -7,10 +7,13 @@ use Drupal\yaml_content\ImportProcessorBase;
 /**
  * Import processor to support entity queries and references.
  *
- * @ContentProcessor(
+ * @ImportProcessor(
  *   id = "entity_reference_import_processor",
  *   label = @Translation("Entity Reference Import Processor"),
- *   import = TRUE,
+ *   context = {
+ *     "entity_type" = NULL,
+ *     "filters" = NULL,
+ *   },
  * )
  */
 class EntityReferenceImportProcessor extends ImportProcessorBase {
@@ -19,6 +22,10 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
    * {@inheritdoc}
    */
   public function execute() {
+
+  }
+
+  protected function buildQuery() {
 
   }
 
