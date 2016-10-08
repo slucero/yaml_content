@@ -9,7 +9,15 @@ use \Symfony\Component\Yaml\Parser;
 
 class ContentLoader implements ContentLoaderInterface {
 
+  /**
+   * @var \Symfony\Component\Yaml\Parser
+   */
   protected $parser;
+
+  /**
+   * @var \Drupal\yaml_content\ContentProcessorPluginManager
+   */
+  protected $pluginManager;
 
   protected $parsed_content;
 
@@ -20,6 +28,7 @@ class ContentLoader implements ContentLoaderInterface {
    */
   public function __construct() {
     $this->parser = new Parser();
+    $this->pluginManager = \Drupal::service('plugin.manager.yaml_content');
   }
 
   /**
@@ -57,6 +66,33 @@ class ContentLoader implements ContentLoaderInterface {
     }
 
     return $loaded_content;
+  }
+
+  /**
+   * Load the processor plugin for use on the import content.
+   *
+   * Load the processor plugin and configure any relevant context available in
+   * the provided `$context` parameter.
+   *
+   * @param $processor_id
+   * @param array $context
+   * @throws \Exception
+   *
+   * @todo Handle PluginNotFoundException.
+   */
+  protected function loadProcessor($processor_id, array $context) {
+    $processor_definition = $this->pluginManager->getDefinition($processor_id);
+
+    // @todo Implement exception class for invalid processors.
+    if (!$processor_definition->import) {
+      throw new \Exception(sprintf('The %s processor does not support import operations.', $processor_id));
+    }
+
+    $processor = $this->pluginManager->createInstance($processor_id, $context);
+
+    // @todo Set and validate context values.
+
+    return $processor;
   }
 
   /**
