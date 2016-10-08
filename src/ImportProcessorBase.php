@@ -1,21 +1,12 @@
 <?php
 
-namespace Drupal\yaml_content\Plugin\YamlContent;
+namespace Drupal\yaml_content;
 
-
-use Drupal\Core\Plugin\PluginBase;
-
-abstract class ImportProcessorBase extends PluginBase implements ImportProcessorInterface {
+abstract class ImportProcessorBase extends ContentProcessorBase implements ImportProcessorInterface {
 
   /**
    * Indicate that this plugin supports import operations.
    */
   public $import = TRUE;
 
-  /**
-   * {@inheritdoc}
-   */
-  public function execute() {
-
-  }
 }
