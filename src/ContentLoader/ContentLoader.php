@@ -80,7 +80,7 @@ class ContentLoader implements ContentLoaderInterface {
    *
    * @todo Handle PluginNotFoundException.
    */
-  protected function loadProcessor($processor_id, array $context) {
+  protected function loadProcessor($processor_id, array &$context) {
     $processor_definition = $this->pluginManager->getDefinition($processor_id);
 
     // @todo Implement exception class for invalid processors.
@@ -88,7 +88,8 @@ class ContentLoader implements ContentLoaderInterface {
       throw new \Exception(sprintf('The %s processor does not support import operations.', $processor_id));
     }
 
-    $processor = $this->pluginManager->createInstance($processor_id, $context);
+    // Instantiate the processor plugin with default config values.
+    $processor = $this->pluginManager->createInstance($processor_id, $processor_definition['config']);
 
     // @todo Set and validate context values.
 

@@ -1,0 +1,15 @@
+# Debugging import content
+---
+# Add Blog Series Landing Hub Page
+-
+  entity: "node"
+  type: "chapter_detail"
+  title: "Blogs"
+  status: 1
+  field_paragraph_body:
+    -
+      entity: paragraph
+      type: 'block_reference'
+      field_block_reference:
+        -
+          target_id: 'views_block__taxonomy_hub_cards_block_blog_series'
