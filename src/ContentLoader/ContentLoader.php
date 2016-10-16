@@ -98,19 +98,64 @@ class ContentLoader implements ContentLoaderInterface {
   }
 
   /**
+   * Import the provided data.
+   * 
+   * The data structure to be created may either be specified via the
+   * `#data_type` key or inferred dynamically if `#data_type` is not defined.
+   *
+   * Content data may be manipulated using the following keys:
+   *   - `#preprocess`: Processors are executed prior to content creation to
+   *     dynamically alter the defined configuration.
+   *   - `#postprocess`: Processors are executed on the created content items
+   *     prior to saving.
+   *
+   * @param array $content_data
+   * @param array $context
+   */
+  public function importData(array $content_data, &$context = array()) {
+    // Check for and run any pre-processing steps.
+    if (isset($content_data['#preprocess'])) {
+      $this->processData($content_data, '#preprocess', $context);
+    }
+
+    // Use a specific data handler if one is specified via `#data_type`.
+    if (isset($content_data['#data_type'])) {
+      
+    }
+    // Infer how to handle the data if nothing is specified.
+    // @todo Handle this more dynamically.
+    else {
+      if (isset($content_data['entity'])) {
+        $context['entity'] = $this->buildEntity($content_data['entity'], $content_data, $context);
+      };
+    }
+
+    // Check for and run any post-processing steps.
+    if (isset($content_data['#postprocess'])) {
+      $this->processData($content_data, '$postprocess', $context);
+    }
+  }
+
+  /**
    * Build an entity from the provided content data.
    *
    * @param $entity_type
    * @param array $content_data
+   *   Parameters:
+   *     - `entity`: (required) The entity type machine name.
+   *     - `bundle`: (required) The bundle machine name.
+   *     - Additional field and property data keyed by field or property name.
+   *
    * @return \Drupal\Core\Entity\EntityInterface
    */
-  public function buildEntity($entity_type, array $content_data) {
+  public function buildEntity($entity_type, array $content_data, &$context) {
     // Load entity type handler.
     $entity_handler = \Drupal::entityTypeManager()->getStorage($entity_type);
 
     // Verify required content data.
 
     // Parse properties for creation and fields for processing.
+    // @todo Extract this using the Entity API instead.
     $properties = array();
     $fields = array();
     foreach (array_keys($content_data) as $key) {
@@ -123,7 +168,7 @@ class ContentLoader implements ContentLoaderInterface {
     };
 
     // Create entity.
-    $entity = $entity_handler->create($properties);
+    $context['entity'] = $entity = $entity_handler->create($properties);
 
     // Populate fields.
     foreach ($fields as $field_name => $field_data) {
@@ -183,18 +228,26 @@ class ContentLoader implements ContentLoaderInterface {
    *
    * @param array $import_data
    *   The current content data being evaluated for import. This array is
-   *   altered directly and returned without the preprocessing keys.
+   *   altered directly and returned without the processing key.
+   * @param string $operations_key
+   *   The key for the processing operations to be executed.
+   *
+   * @throws Exception
    */
-  public function preprocessData(array &$import_data) {
-    $instructions = $this->getPreprocessKeys($import_data);
+  public function processData(array &$import_data, string $operations_key, array &$context) {
+    $instructions = $import_data[$operations_key];
+
+    if (!is_array($instructions)) {
+      throw new Exception('Processing instructions must be provided as an array.');
+    }
 
     // Execute all processing actions.
     foreach ($instructions as $key => $data) {
       // @todo Execute preprocess actions.
     }
 
-    // Remove all processing keys.
-    $import_data = array_diff_key($import_data, $instructions);
+    // Remove executed processing data.
+    unset($import_data[$operations_key]);
   }
 
   /**
@@ -212,13 +265,13 @@ class ContentLoader implements ContentLoaderInterface {
    * @return array
    *   An array of only the keys starting with '#'.
    */
-  protected function getPreprocessKeys(array $data) {
+  protected function getProcessKeys(array $data) {
     // Filter only array keys starting with '#'.
-    $preprocess_keys = array_filter($data, function($key) {
+    $process_keys = array_filter($data, function($key) {
       return (substr($key, 0, 1) == '#');
     }, ARRAY_FILTER_USE_KEY);
 
-    return $preprocess_keys;
+    return $process_keys;
   }
 
   /**
