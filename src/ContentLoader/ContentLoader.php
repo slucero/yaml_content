@@ -2,6 +2,7 @@
 
 namespace Drupal\yaml_content\ContentLoader;
 
+use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Config\ConfigValueException;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\TypedData\Exception\MissingDataException;
@@ -24,11 +25,11 @@ class ContentLoader implements ContentLoaderInterface {
   /**
    * ContentLoader constructor.
    *
-   * @todo Register via services.
+   * @todo Refactor to accept Yaml Parser via dependency injection.
    */
-  public function __construct() {
+  public function __construct(PluginManagerInterface $pluginManager) {
     $this->parser = new Parser();
-    $this->pluginManager = \Drupal::service('plugin.manager.yaml_content');
+    $this->pluginManager = $pluginManager;
   }
 
   /**

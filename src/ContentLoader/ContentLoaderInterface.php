@@ -2,9 +2,11 @@
 
 namespace Drupal\yaml_content\ContentLoader;
 
+use Drupal\Component\Plugin\PluginManagerInterface;
+
 interface ContentLoaderInterface {
 
-  public function __construct();
+  public function __construct(PluginManagerInterface $pluginManager);
 
   /**
    * Parse the given yaml content file into an array.
