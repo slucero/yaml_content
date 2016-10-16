@@ -5,4 +5,4 @@ services:
     arguments: ['@container.namespaces', '@cache.default', '@module_handler']
   yaml_content.content_loader:
     class: Drupal\yaml_content\ContentLoader\ContentLoader
-    arguments: ['@plugin.manager.yaml_content']
+    arguments: ['@plugin.manager.yaml_content', '@entity_type.manager']

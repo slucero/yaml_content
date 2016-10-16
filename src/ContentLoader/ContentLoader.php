@@ -4,10 +4,18 @@ namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Config\ConfigValueException;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\TypedData\Exception\MissingDataException;
+use Symfony\Component\Config\Definition\Exception\Exception;
 use \Symfony\Component\Yaml\Parser;
 
+/**
+ * Class ContentLoader
+ * @package Drupal\yaml_content\ContentLoader
+ *
+ * @todo Extend this class as an EntityLoader to support later support options.
+ */
 class ContentLoader implements ContentLoaderInterface {
 
   /**
@@ -18,7 +26,12 @@ class ContentLoader implements ContentLoaderInterface {
   /**
    * @var \Drupal\yaml_content\ContentProcessorPluginManager
    */
-  protected $pluginManager;
+  protected $processorPluginManager;
+
+  /**
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
 
   protected $parsed_content;
 
@@ -27,9 +40,10 @@ class ContentLoader implements ContentLoaderInterface {
    *
    * @todo Refactor to accept Yaml Parser via dependency injection.
    */
-  public function __construct(PluginManagerInterface $pluginManager) {
+  public function __construct(PluginManagerInterface $processorPluginManager, EntityTypeManagerInterface $entityTypeManager) {
     $this->parser = new Parser();
-    $this->pluginManager = $pluginManager;
+    $this->processorPluginManager = $processorPluginManager;
+    $this->entityTypeManager = $entityTypeManager;
   }
 
   /**
@@ -82,7 +96,7 @@ class ContentLoader implements ContentLoaderInterface {
    * @todo Handle PluginNotFoundException.
    */
   protected function loadProcessor($processor_id, array &$context) {
-    $processor_definition = $this->pluginManager->getDefinition($processor_id);
+    $processor_definition = $this->processorPluginManager->getDefinition($processor_id);
 
     // @todo Implement exception class for invalid processors.
     if (!$processor_definition->import) {
@@ -90,7 +104,7 @@ class ContentLoader implements ContentLoaderInterface {
     }
 
     // Instantiate the processor plugin with default config values.
-    $processor = $this->pluginManager->createInstance($processor_id, $processor_definition['config']);
+    $processor = $this->processorPluginManager->createInstance($processor_id, $processor_definition['config']);
 
     // @todo Set and validate context values.
 
@@ -148,7 +162,7 @@ class ContentLoader implements ContentLoaderInterface {
    *
    * @return \Drupal\Core\Entity\EntityInterface
    */
-  public function buildEntity($entity_type, array $content_data, &$context) {
+  public function buildEntity($entity_type, array $content_data, array &$context) {
     // Load entity type handler.
     $entity_handler = \Drupal::entityTypeManager()->getStorage($entity_type);
 

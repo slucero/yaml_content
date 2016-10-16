@@ -3,10 +3,11 @@
 namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 interface ContentLoaderInterface {
 
-  public function __construct(PluginManagerInterface $pluginManager);
+  public function __construct(PluginManagerInterface $processorPluginManager, EntityTypeManagerInterface $entityTypeManager);
 
   /**
    * Parse the given yaml content file into an array.
@@ -36,7 +37,8 @@ interface ContentLoaderInterface {
    *
    * @param $entity_type
    * @param array $content_data
+   * @param array $context
    * @return \Drupal\Core\Entity\EntityInterface
    */
-  function buildEntity($entity_type, array $content_data);
+  function buildEntity($entity_type, array $content_data, array &$context);
 }
