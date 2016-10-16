@@ -174,6 +174,52 @@ class ContentLoader implements ContentLoaderInterface {
     }
   }
 
+  /**
+   * Evaluate the current import data array and run any preprocessing needed.
+   *
+   * Any data keys starting with '#' indicate preprocessing instructions that
+   * should be executed on the data prior to import. The data array is altered
+   * directly and fully prepared for import.
+   *
+   * @param array $import_data
+   *   The current content data being evaluated for import. This array is
+   *   altered directly and returned without the preprocessing keys.
+   */
+  public function preprocessData(array &$import_data) {
+    $instructions = $this->getPreprocessKeys($import_data);
+
+    // Execute all processing actions.
+    foreach ($instructions as $key => $data) {
+      // @todo Execute preprocess actions.
+    }
+
+    // Remove all processing keys.
+    $import_data = array_diff_key($import_data, $instructions);
+  }
+
+  /**
+   * Filter array keys to only those starting with '#'.
+   *
+   * Array keys starting with '#' are used to indicate special data processing
+   * is needed. This function is a helper to identify only those keys indicating
+   * special processing instructions.
+   *
+   * The original array passed into this remains unaltered.
+   *
+   * @param array $data
+   *   The content data array currently being processed.
+   *
+   * @return array
+   *   An array of only the keys starting with '#'.
+   */
+  protected function getPreprocessKeys(array $data) {
+    // Filter only array keys starting with '#'.
+    $preprocess_keys = array_filter($data, function($key) {
+      return (substr($key, 0, 1) == '#');
+    }, ARRAY_FILTER_USE_KEY);
+
+    return $preprocess_keys;
+  }
 
   /**
    * Run any designated preprocessors on the provided field data.
@@ -217,52 +263,5 @@ class ContentLoader implements ContentLoaderInterface {
         throw new ConfigValueException('Uncallable processor provided: ' . $callable);
       }
     }
-  }
-
-  /**
-   * Processor function for querying and loading a referenced entity.
-   *
-   * @param $field
-   * @param array $field_data
-   * @param $entity_type
-   * @param array $filter_params
-   * @return array|int
-   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
-   *
-   * @see ChapterLoader::preprocessFieldData().
-   */
-  static function loadReference($field, array &$field_data, $entity_type, array $filter_params) {
-
-    $query = \Drupal::entityQuery($entity_type);
-
-    // Apply filter parameters.
-    foreach ($filter_params as $property => $value) {
-      $query->condition($property, $value);
-    }
-
-    $entity_ids = $query->execute();
-
-    if (empty($entity_ids)) {
-      // Build parameter output description for error message.
-      $error_params = [
-        '[',
-        '  "entity_type" => ' . $entity_type . ',',
-      ];
-      foreach ($filter_params as $key => $value) {
-        $error_params[] = sprintf("  '%s' => '%s',", $key, $value);
-      }
-      $error_params[] = ']';
-      $param_output = join("\n", $error_params);
-
-      throw new MissingDataException(__CLASS__ . ': Unable to find referenced content: ' . $param_output);
-    }
-
-    // Use the first match for our value.
-    $field_data['target_id'] = array_shift($entity_ids);
-
-    // Remove process data to avoid issues when setting the value.
-    unset($field_data['#process']);
-
-    return $entity_ids;
   }
 }
