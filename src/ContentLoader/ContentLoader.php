@@ -113,9 +113,6 @@ class ContentLoader implements ContentLoaderInterface {
 
   /**
    * Import the provided data.
-   * 
-   * The data structure to be created may either be specified via the
-   * `#data_type` key or inferred dynamically if `#data_type` is not defined.
    *
    * Content data may be manipulated using the following keys:
    *   - `#preprocess`: Processors are executed prior to content creation to
@@ -126,28 +123,32 @@ class ContentLoader implements ContentLoaderInterface {
    * @param array $content_data
    * @param array $context
    */
-  public function importData(array $content_data, &$context = array()) {
+  public function importData(array $content_data, $context = array()) {
     // Check for and run any pre-processing steps.
     if (isset($content_data['#preprocess'])) {
-      $this->processData($content_data, '#preprocess', $context);
+      $this->preprocessData($content_data, $context);
     }
 
-    // Use a specific data handler if one is specified via `#data_type`.
-    if (isset($content_data['#data_type'])) {
-      
+    // Is there an entity available?
+    if (isset($context['entity'])) {
+      // Pass back this content data since it's passed through processing.
+      $import_content = $content_data;
     }
-    // Infer how to handle the data if nothing is specified.
-    // @todo Handle this more dynamically.
+    // Are we building an entity?
+    elseif (isset($content_data['entity'])) {
+      $import_content = $this->buildEntity($content_data['entity'], $content_data, $context);
+    }
+    // I don't know what we're trying to do here.
     else {
-      if (isset($content_data['entity'])) {
-        $context['entity'] = $this->buildEntity($content_data['entity'], $content_data, $context);
-      };
+      throw new Exception("Unknown data state.\n" . print_r($content_data, TRUE));
     }
 
     // Check for and run any post-processing steps.
     if (isset($content_data['#postprocess'])) {
-      $this->processData($content_data, '$postprocess', $context);
+      $this->postprocessData($import_content, $content_data, $context);
     }
+
+    return $import_content;
   }
 
   /**
@@ -163,42 +164,47 @@ class ContentLoader implements ContentLoaderInterface {
    * @return \Drupal\Core\Entity\EntityInterface
    */
   public function buildEntity($entity_type, array $content_data, array &$context) {
+    if (!$this->entityTypeManager->hasDefinition($entity_type)) {
+      // @todo Update this to use `t()`.
+      throw new Exception(sprintf('Invalid entity type: %s', $entity_type));
+    }
+
+    // Load entity type definition.
+    $entity_definition = $this->entityTypeManager->getDefinition($entity_type);
+    $entity_keys = $entity_definition->getKeys();
+
     // Load entity type handler.
-    $entity_handler = \Drupal::entityTypeManager()->getStorage($entity_type);
+    $entity_handler = $this->entityTypeManager->getStorage($entity_type);
 
-    // Verify required content data.
-
-    // Parse properties for creation and fields for processing.
-    // @todo Extract this using the Entity API instead.
+    // Map generic entity keys into entity-specific values.
     $properties = array();
-    $fields = array();
-    foreach (array_keys($content_data) as $key) {
-      if (strpos($key, 'field') === 0) {
-        $fields[$key] = $content_data[$key];
+    foreach ($entity_keys as $source => $target) {
+      if (isset($content_data[$source])) {
+        $properties[$target] = $content_data[$source];
       }
-      else {
-        $properties[$key] = $content_data[$key];
-      }
-    };
+    }
 
     // Create entity.
     $context['entity'] = $entity = $entity_handler->create($properties);
 
-    // Populate fields.
-    foreach ($fields as $field_name => $field_data) {
+    // Populate additional data not included in properties.
+    foreach (array_diff_key($content_data, $entity_keys, $properties) as $field_name => $field_data) {
       try {
         if ($entity->$field_name) {
-          $this->populateField($entity->$field_name, $field_data);
+          $field_data = $this->importData($content_data[$field_name], $context);
+
+          // @todo Validate data assignment.
+          $entity->$field_name->appendItem($field_data);
         }
         else {
           throw new FieldException('Undefined field: ' . $field_name);
         }
       }
       catch (MissingDataException $exception) {
-        watchdog_exception('cfr_demo_content', $exception);
+        watchdog_exception('yaml_content', $exception);
       }
       catch (ConfigValueException $exception) {
-        watchdog_exception('cfr_demo_content', $exception);
+        watchdog_exception('yaml_content', $exception);
       }
     }
 
@@ -248,20 +254,44 @@ class ContentLoader implements ContentLoaderInterface {
    *
    * @throws Exception
    */
-  public function processData(array &$import_data, string $operations_key, array &$context) {
-    $instructions = $import_data[$operations_key];
-
-    if (!is_array($instructions)) {
+  public function preprocessData(array &$import_data, array $context) {
+    if (!is_array($import_data['#preprocess'])) {
       throw new Exception('Processing instructions must be provided as an array.');
     }
 
     // Execute all processing actions.
-    foreach ($instructions as $key => $data) {
+    foreach ($import_data['#preprocess'] as $key => $data) {
       // @todo Execute preprocess actions.
     }
 
     // Remove executed processing data.
-    unset($import_data[$operations_key]);
+    unset($import_data['#preprocess']);
+  }
+
+  /**
+   * Evaluate the current import data array and run any preprocessing needed.
+   *
+   * Any data keys starting with '#' indicate preprocessing instructions that
+   * should be executed on the data prior to import. The data array is altered
+   * directly and fully prepared for import.
+   *
+   * @param array $import_data
+   *   The current content data being evaluated for import. This array is
+   *   altered directly and returned without the processing key.
+   * @param string $operations_key
+   *   The key for the processing operations to be executed.
+   *
+   * @throws Exception
+   */
+  public function postprocessData(&$import_content, array $content_data, array $context) {
+    if (!is_array($content_data['#postprocess'])) {
+      throw new Exception('Processing instructions must be provided as an array.');
+    }
+
+    // Execute all processing actions.
+    foreach ($content_data['#postprocess'] as $key => $data) {
+      // @todo Execute postprocess actions.
+    }
   }
 
   /**
