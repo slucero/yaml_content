@@ -73,11 +73,12 @@ class ContentLoader implements ContentLoaderInterface {
 
     $loaded_content = array();
 
-    // Create each entity defined in the yml content.
+    // Create each entity defined in the yaml content.
+    $context = array();
     foreach ($content as $content_item) {
-      $entity = $this->buildEntity($content_item['entity'], $content_item);
+      $entity = $this->importData($content_item, $context);
       $entity->save();
-      $loaded_content[] = $entity->id();
+      $loaded_content[] = $entity;
     }
 
     return $loaded_content;
@@ -129,14 +130,14 @@ class ContentLoader implements ContentLoaderInterface {
       $this->preprocessData($content_data, $context);
     }
 
-    // Is there an entity available?
-    if (isset($context['entity'])) {
+    // Are we building an entity?
+    if (isset($content_data['entity'])) {
+      $import_content = $this->buildEntity($content_data['entity'], $content_data, $context);
+    }
+    // Are we already building an entity?
+    elseif (isset($context['entity'])) {
       // Pass back this content data since it's passed through processing.
       $import_content = $content_data;
-    }
-    // Are we building an entity?
-    elseif (isset($content_data['entity'])) {
-      $import_content = $this->buildEntity($content_data['entity'], $content_data, $context);
     }
     // I don't know what we're trying to do here.
     else {
