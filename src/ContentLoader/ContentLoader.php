@@ -183,23 +183,45 @@ class ContentLoader implements ContentLoaderInterface {
       if (isset($content_data[$source])) {
         $properties[$target] = $content_data[$source];
       }
+      elseif (isset($content_data[$target])) {
+        $properties[$target] = $content_data[$target];
+      }
     }
 
     // Create entity.
     $context['entity'] = $entity = $entity_handler->create($properties);
 
+    // Keys for exclusion due to use in content structuring.
+    $structure_keys = array(
+      'entity' => '',
+    );
+
+    // All keys to be excluded from content generation.
+    $excluded_keys = array_merge(
+      $structure_keys,
+      $entity_keys,
+      $properties
+    );
+
     // Populate additional data not included in properties.
-    foreach (array_diff_key($content_data, $entity_keys, $properties) as $field_name => $field_data) {
+    foreach (array_diff_key($content_data, $excluded_keys) as $field_name => $field_data) {
       try {
         if ($entity->$field_name) {
-          $field_data = $this->importData($content_data[$field_name], $context);
+          // Process the data if it's not a raw value.
+          if (is_array($field_data)) {
+            // Pass through full `importData` function again to support processing.
+            $field_data = $this->importData($content_data[$field_name], $context);
+          }
 
           // @todo Validate data assignment.
-          $entity->$field_name->appendItem($field_data);
+          $entity->set($field_name, $field_data);
         }
         else {
           throw new FieldException('Undefined field: ' . $field_name);
         }
+      }
+      catch (FieldException $exception) {
+        watchdog_exception('yaml_content', $exception);
       }
       catch (MissingDataException $exception) {
         watchdog_exception('yaml_content', $exception);
