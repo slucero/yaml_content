@@ -62,6 +62,6 @@ function drush_yaml_content_import($directory, $file = NULL) {
  * Import debugging content.
  */
 function drush_yaml_content_import_dev() {
-  $content_path = drupal_get_path('module', 'yaml_content') . '/yaml_content/content';
+  $content_path = drupal_get_path('module', 'yaml_content') . '/content';
   drush_yaml_content_import($content_path, 'dev.content.yml');
 }
