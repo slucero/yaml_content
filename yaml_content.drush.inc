@@ -44,9 +44,7 @@ function yaml_content_drush_command() {
  * @todo Implement file globbing for optional `$file` parameter.
  */
 function drush_yaml_content_import($directory, $file = NULL) {
-  // @todo Use service loading after refactoring.
-  // $loader = \Drupal::service('content_loader.yaml_content');
-  $loader = new ContentLoader();
+  $loader = \Drupal::service('yaml_content.content_loader');
   $loader->setContentPath($directory);
 
   // @todo Implement file globbing if `$file` is NULL.
