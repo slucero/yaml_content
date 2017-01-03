@@ -134,14 +134,10 @@ class ContentLoader implements ContentLoaderInterface {
     if (isset($content_data['entity'])) {
       $import_content = $this->buildEntity($content_data['entity'], $content_data, $context);
     }
-    // Are we already building an entity?
-    elseif (isset($context['entity'])) {
+    // Run processing on content data.
+    else {
       // Pass back this content data since it's passed through processing.
       $import_content = $content_data;
-    }
-    // I don't know what we're trying to do here.
-    else {
-      throw new Exception("Unknown data state.\n" . print_r($content_data, TRUE));
     }
 
     // Check for and run any post-processing steps.
@@ -203,18 +199,25 @@ class ContentLoader implements ContentLoaderInterface {
       $properties
     );
 
-    // Populate additional data not included in properties.
-    foreach (array_diff_key($content_data, $excluded_keys) as $field_name => $field_data) {
+    $this->importEntityFields($entity, array_diff_key($content_data, $excluded_keys), $content_data);
+  }
+
+  /**
+   * Import multiple fields on an entity.
+   *
+   * @param $entity
+   * @param array $field_content
+   * @return mixed
+   */
+  protected function importEntityFields($entity, array $field_content) {
+    // @todo Preprocess with entity stub and field data.
+
+    // Iterate over each field with data.
+    foreach ($field_content as $field_name => $field_data) {
       try {
         if ($entity->$field_name) {
-          // Process the data if it's not a raw value.
-          if (is_array($field_data)) {
-            // Pass through full `importData` function again to support processing.
-            $field_data = $this->importData($content_data[$field_name], $context);
-          }
-
-          // @todo Validate data assignment.
-          $entity->set($field_name, $field_data);
+           // Run import process for each field.
+          $this->importFieldData($entity, $field_name, $field_data);
         }
         else {
           throw new FieldException('Undefined field: ' . $field_name);
@@ -231,7 +234,38 @@ class ContentLoader implements ContentLoaderInterface {
       }
     }
 
+    // @todo Postprocess with populated entity.
+
     return $entity;
+  }
+
+  /**
+   * Import field items for an individual field.
+   *
+   * @param $entity
+   * @param string $field_name
+   * @param array $field_data
+   */
+  public function importFieldData($entity, string $field_name, $field_data) {
+    // @todo Preprocess overall field item data.
+
+    if (!is_array($field_data)) {
+      $field_data = array($field_data);
+    }
+
+    // Process each individual field item.
+    foreach ($field_data as $data_item) {
+      // @todo Preprocess individual field item.
+
+      // @todo Process complex data values like references.
+
+      // @todo Postprocess individual field item.
+
+      // Assign the field item to the field.
+      $entity->$field_name->appendItem($data_item);
+    }
+
+    // @todo Postprocess overall field item data.
   }
 
   /**
