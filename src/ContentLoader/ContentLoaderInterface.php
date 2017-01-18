@@ -13,8 +13,7 @@ interface ContentLoaderInterface {
    * Parse the given yaml content file into an array.
    *
    * @param $content_file
-   *   A file name for the content file to be loaded. The file is assumed to be
-   *   located within cfr_demo_content/content/.
+   *   A file name for the content file to be loaded.
    * @return array
    *   The parsed content array from the file.
    */
@@ -24,8 +23,7 @@ interface ContentLoaderInterface {
    * Load all demo content for this loader.
    *
    * @param $content_file
-   *   A file name for the content file to be loaded. The file is assumed to be
-   *   located within cfr_demo_content/content/.
+   *   A file name for the content file to be loaded.
    *
    * @return array
    *   An array of generated entity Ids.
