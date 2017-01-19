@@ -7,8 +7,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 interface ContentLoaderInterface {
 
-  public function __construct(PluginManagerInterface $processorPluginManager, EntityTypeManagerInterface $entityTypeManager);
-
   /**
    * Parse the given yaml content file into an array.
    *
@@ -35,10 +33,14 @@ interface ContentLoaderInterface {
   /**
    * Build an entity from the provided content data.
    *
-   * @param $entity_type
+   * @param string $entity_type
    * @param array $content_data
-   * @param array $context
+   *   Parameters:
+   *     - `entity`: (required) The entity type machine name.
+   *     - `bundle`: (required) The bundle machine name.
+   *     - Additional field and property data keyed by field or property name.
+   *
    * @return \Drupal\Core\Entity\EntityInterface
    */
-  function buildEntity($entity_type, array $content_data, array &$context);
+  function buildEntity(string $entity_type, array $content_data, array &$context);
 }
