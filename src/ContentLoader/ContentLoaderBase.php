@@ -4,6 +4,7 @@ namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Config\ConfigValueException;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\TypedData\Exception\MissingDataException;
@@ -119,6 +120,7 @@ class ContentLoaderBase implements ContentLoaderInterface {
    *     - Additional field and property data keyed by field or property name.
    *
    * @return \Drupal\Core\Entity\EntityInterface
+   *   A built and populated entity object containing the imported data.
    */
   public function buildEntity(string $entity_type, array $content_data, array &$context) {
     if (!$this->entityTypeManager->hasDefinition($entity_type)) {
@@ -160,20 +162,24 @@ class ContentLoaderBase implements ContentLoaderInterface {
     );
 
     $this->importEntityFields($entity, array_diff_key($content_data, $excluded_keys), $content_data);
+
+    return $entity;
   }
 
   /**
    * Import multiple fields on an entity.
    *
-   * @param $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    * @param array $field_content
-   * @return mixed
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The `$entity` parameter with all field data imported into it.
    */
-  protected function importEntityFields($entity, array $field_content) {
+  protected function importEntityFields(EntityInterface $entity, array $field_content) {
     // Iterate over each field with data.
     foreach ($field_content as $field_name => $field_data) {
       try {
-        if ($entity->$field_name) {
+        if ($entity->hasField($field_name)) {
            // Run import process for each field.
           $this->importFieldData($entity, $field_name, $field_data);
         }
@@ -198,11 +204,11 @@ class ContentLoaderBase implements ContentLoaderInterface {
   /**
    * Import field items for an individual field.
    *
-   * @param $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    * @param string $field_name
    * @param array $field_data
    */
-  public function importFieldData($entity, string $field_name, $field_data) {
+  public function importFieldData(EntityInterface $entity, string $field_name, $field_data) {
     if (!is_array($field_data)) {
       $field_data = array($field_data);
     }
@@ -228,9 +234,6 @@ class ContentLoaderBase implements ContentLoaderInterface {
   protected function populateField($field, array &$field_data) {
     // Iterate over each value.
     foreach ($field_data as &$field_item) {
-
-      // Preprocess field data.
-      $this->preprocessFieldData($field, $field_item);
 
       $is_reference = isset($field_item['entity']);
 
