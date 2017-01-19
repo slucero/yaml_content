@@ -24,11 +24,13 @@ interface ContentLoaderInterface {
    *
    * @param $content_file
    *   A file name for the content file to be loaded.
+   * @param bool $save
+   *   Flag indicator to determine whether loaded entities should be saved.
    *
    * @return array
    *   An array of generated entity Ids.
    */
-  function loadContent($content_file);
+  function loadContent($content_file, bool $save = TRUE);
 
   /**
    * Build an entity from the provided content data.

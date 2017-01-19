@@ -68,7 +68,7 @@ class ContentLoader implements ContentLoaderInterface {
   /**
    * {@inheritdoc}
    */
-  public function loadContent($content_file) {
+  public function loadContent($content_file, bool $save = TRUE) {
     $content = $this->parseContent($content_file);
 
     $loaded_content = array();
@@ -77,7 +77,9 @@ class ContentLoader implements ContentLoaderInterface {
     $context = array();
     foreach ($content as $content_item) {
       $entity = $this->importData($content_item, $context);
-      $entity->save();
+      if ($save) {
+        $entity->save();
+      }
       $loaded_content[] = $entity;
     }
 
