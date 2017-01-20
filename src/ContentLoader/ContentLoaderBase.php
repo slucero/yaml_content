@@ -4,8 +4,10 @@ namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Config\ConfigValueException;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\TypedData\Exception\MissingDataException;
 use Symfony\Component\Config\Definition\Exception\Exception;
@@ -71,9 +73,8 @@ class ContentLoaderBase implements ContentLoaderInterface {
     $loaded_content = array();
 
     // Create each entity defined in the yaml content.
-    $context = array();
     foreach ($content as $content_item) {
-      $entity = $this->importData($content_item, $context);
+      $entity = $this->importEntity($content_item);
       if ($save) {
         $entity->save();
       }
@@ -84,29 +85,108 @@ class ContentLoaderBase implements ContentLoaderInterface {
   }
 
   /**
-   * Import the provided data.
-   *
-   * Content data may be manipulated using the following keys:
-   *   - `#preprocess`: Processors are executed prior to content creation to
-   *     dynamically alter the defined configuration.
-   *   - `#postprocess`: Processors are executed on the created content items
-   *     prior to saving.
+   * Load an entity from a loaded import data outline.
    *
    * @param array $content_data
-   * @param array $context
+   *   The loaded array of content data to populate into this entity.
+   *
+   *   Required keys:
+   *     - `entity`: The entity type machine name.
+   *
+   * @return EntityInterface
+   *
+   * @throws \Exception
    */
-  public function importData(array $content_data, $context = array()) {
-    // Are we building an entity?
-    if (isset($content_data['entity'])) {
-      $import_content = $this->buildEntity($content_data['entity'], $content_data, $context);
+  public function importEntity(array $content_data) {
+    // @todo Preprocess entity content data.
+
+    // @todo Validate entity information for building.
+    if (!isset($content_data['entity'])) {
+      throw new \Exception('An entity type is required in the "entity" key.');
     }
-    // Run processing on content data.
     else {
-      // Pass back this content data since it's passed through processing.
-      $import_content = $content_data;
+      $entity_type = $content_data['entity'];
     }
 
-    return $import_content;
+    if (!$this->entityTypeManager->hasDefinition($entity_type)) {
+      // @todo Update this to use `t()`.
+      throw new \Exception(sprintf('Invalid entity type: %s', $entity_type));
+    }
+
+    // Build the basic entity structure.
+    $entity = $this->buildEntity($entity_type, $content_data);
+
+    // @todo Break this out into `$this->importEntityFields()`.
+    // Import the entity fields if applicable.
+    if ($entity instanceof ContentEntityInterface) {
+
+      $field_definitions = $entity->getFieldDefinitions();
+
+      // Iterate across each field value in the import content.
+      foreach (array_intersect_key($content_data, $field_definitions) as $field_name => $field_data) {
+        // Ensure data is wrapped as an array to handle field values as a list.
+        if (!is_array($field_data)) {
+          $field_data = [$field_data];
+        }
+
+        $this->importEntityField($field_data, $entity, $field_definitions[$field_name]);
+      }
+    }
+
+    // @todo Postprocess loaded entity object.
+
+    return $entity;
+  }
+
+  /**
+   * Process import data into an appropriate field value and assign it.
+   *
+   * @param array $field_data
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   */
+  public function importEntityField(array $field_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
+    // @todo Preprocess field content data.
+
+    // Iterate over each field value.
+    foreach ($field_data as $field_item) {
+      $field_value = $this->importFieldItem($field_item);
+
+      // @todo Assign or append field item value.
+      $entity->{$field_definition->getName()}->appendItem($field_value);
+    }
+
+    // @todo Postprocess loaded field object.
+  }
+
+  /**
+   * Process import data for an individual field list item value.
+   *
+   * @param $field_item_data
+   *
+   * @return mixed
+   *   The processed field item value for storage in the field.
+   */
+  public function importFieldItem($field_item_data) {
+    if (is_array($field_item_data)) {
+      // @todo Preprocess field item data.
+
+      // Is it an entity reference?
+      if (isset($field_item_data['entity'])) {
+        $item_value = $this->importEntity($field_item_data);
+      }
+      else {
+        $item_value = $field_item_data;
+      }
+
+      // @todo Postprocess field item object.
+    }
+    else {
+      // Return a simple value.
+      $item_value = $field_item_data;
+    }
+
+    return $item_value;
   }
 
   /**
@@ -122,12 +202,7 @@ class ContentLoaderBase implements ContentLoaderInterface {
    * @return \Drupal\Core\Entity\EntityInterface
    *   A built and populated entity object containing the imported data.
    */
-  public function buildEntity(string $entity_type, array $content_data, array &$context) {
-    if (!$this->entityTypeManager->hasDefinition($entity_type)) {
-      // @todo Update this to use `t()`.
-      throw new Exception(sprintf('Invalid entity type: %s', $entity_type));
-    }
-
+  public function buildEntity(string $entity_type, array $content_data, array &$context = array()) {
     // Load entity type definition.
     $entity_definition = $this->entityTypeManager->getDefinition($entity_type);
     $entity_keys = $entity_definition->getKeys();
@@ -146,105 +221,9 @@ class ContentLoaderBase implements ContentLoaderInterface {
       }
     }
 
-    // Create entity.
-    $context['entity'] = $entity = $entity_handler->create($properties);
-
-    // Keys for exclusion due to use in content structuring.
-    $structure_keys = array(
-      'entity' => '',
-    );
-
-    // All keys to be excluded from content generation.
-    $excluded_keys = array_merge(
-      $structure_keys,
-      $entity_keys,
-      $properties
-    );
-
-    $this->importEntityFields($entity, array_diff_key($content_data, $excluded_keys), $content_data);
+    // Create the entity.
+    $entity = $entity_handler->create($properties);
 
     return $entity;
-  }
-
-  /**
-   * Import multiple fields on an entity.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   * @param array $field_content
-   *
-   * @return \Drupal\Core\Entity\EntityInterface
-   *   The `$entity` parameter with all field data imported into it.
-   */
-  protected function importEntityFields(EntityInterface $entity, array $field_content) {
-    // Iterate over each field with data.
-    foreach ($field_content as $field_name => $field_data) {
-      try {
-        if ($entity->hasField($field_name)) {
-           // Run import process for each field.
-          $this->importFieldData($entity, $field_name, $field_data);
-        }
-        else {
-          throw new FieldException('Undefined field: ' . $field_name);
-        }
-      }
-      catch (FieldException $exception) {
-        watchdog_exception('yaml_content', $exception);
-      }
-      catch (MissingDataException $exception) {
-        watchdog_exception('yaml_content', $exception);
-      }
-      catch (ConfigValueException $exception) {
-        watchdog_exception('yaml_content', $exception);
-      }
-    }
-
-    return $entity;
-  }
-
-  /**
-   * Import field items for an individual field.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   * @param string $field_name
-   * @param array $field_data
-   */
-  public function importFieldData(EntityInterface $entity, string $field_name, $field_data) {
-    if (!is_array($field_data)) {
-      $field_data = array($field_data);
-    }
-
-    // Process each individual field item.
-    foreach ($field_data as $data_item) {
-
-      // @todo Process complex data values like references.
-
-      // Assign the field item to the field.
-      $entity->$field_name->appendItem($data_item);
-    }
-  }
-
-  /**
-   * Populate field content into the provided field.
-   *
-   * @param $field
-   * @param array $field_data
-   *
-   * @todo Handle field data types more dynamically with typed data.
-   */
-  protected function populateField($field, array &$field_data) {
-    // Iterate over each value.
-    foreach ($field_data as &$field_item) {
-
-      $is_reference = isset($field_item['entity']);
-
-      if ($is_reference) {
-        // @todo Dynamically determine the type of reference.
-
-        // Create entity.
-        $field_item = $this->buildEntity($field_item['entity'], $field_item);
-      }
-
-      $field->appendItem($field_item);
-    }
   }
 }
