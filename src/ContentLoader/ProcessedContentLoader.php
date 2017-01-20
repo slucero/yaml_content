@@ -3,15 +3,11 @@
 namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
-use Drupal\Core\Config\ConfigValueException;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldException;
-use Drupal\Core\TypedData\Exception\MissingDataException;
 use Drupal\yaml_content\ImportProcessorInterface;
 use Symfony\Component\Config\Definition\Exception\Exception;
-use \Symfony\Component\Yaml\Parser;
 
 /**
  * Class ProcessedContentLoader
@@ -78,16 +74,22 @@ class ProcessedContentLoader extends ContentLoaderBase {
   /**
    * {@inheritdoc}
    */
-  public function importFieldItem(array $field_item_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
+  public function importFieldItem($field_item_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
     // Preprocess field data.
     $field_context['entity'] = $entity;
     $field_context['field'] = $field_definition;
-    $this->preprocessData($field_item_data, $field_context);
+    if (is_array($field_item_data)) {
+      $this->preprocessData($field_item_data, $field_context);
+    }
 
     $item_value = parent::importFieldItem($field_item_data, $entity, $field_definition);
 
     // Postprocess loaded field data.
-    $this->postprocessData($field_item_data, $entity, $field_context);
+    if (is_array($field_item_data)) {
+      $this->postprocessData($field_item_data, $item_value, $field_context);
+    }
+
+    return $item_value;
   }
 
   /**
