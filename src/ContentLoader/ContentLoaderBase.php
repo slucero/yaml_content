@@ -93,8 +93,6 @@ class ContentLoaderBase implements ContentLoaderInterface {
    * @throws \Exception
    */
   public function importEntity(array $content_data) {
-    // @todo Preprocess entity content data.
-
     // @todo Validate entity information for building.
     if (!isset($content_data['entity'])) {
       throw new \Exception('An entity type is required in the "entity" key.');
@@ -128,8 +126,6 @@ class ContentLoaderBase implements ContentLoaderInterface {
       }
     }
 
-    // @todo Postprocess loaded entity object.
-
     return $entity;
   }
 
@@ -141,8 +137,6 @@ class ContentLoaderBase implements ContentLoaderInterface {
    * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    */
   public function importEntityField(array $field_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
-    // @todo Preprocess field content data.
-
     // Iterate over each field value.
     foreach ($field_data as $field_item) {
       $field_value = $this->importFieldItem($field_item, $entity, $field_definition);
@@ -150,8 +144,6 @@ class ContentLoaderBase implements ContentLoaderInterface {
       // Assign or append field item value.
       $this->assignFieldValue($entity, $field_definition->getName(), $field_value);
     }
-
-    // @todo Postprocess loaded field object.
   }
 
   /**
@@ -165,8 +157,6 @@ class ContentLoaderBase implements ContentLoaderInterface {
    *   The processed field item value for storage in the field.
    */
   public function importFieldItem($field_item_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
-    // @todo Preprocess field item data.
-
     // Is it an entity reference?
     if (is_array($field_item_data) && isset($field_item_data['entity'])) {
       $item_value = $this->importEntity($field_item_data);
@@ -174,8 +164,6 @@ class ContentLoaderBase implements ContentLoaderInterface {
     else {
       $item_value = $field_item_data;
     }
-
-    // @todo Postprocess field item object.
 
     return $item_value;
   }
