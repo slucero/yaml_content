@@ -2,15 +2,10 @@
 
 namespace Drupal\yaml_content\ContentLoader;
 
-use Drupal\Component\Plugin\PluginManagerInterface;
-use Drupal\Core\Config\ConfigValueException;
-use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldException;
-use Drupal\Core\TypedData\Exception\MissingDataException;
-use Symfony\Component\Config\Definition\Exception\Exception;
 use \Symfony\Component\Yaml\Parser;
 
 /**
@@ -118,7 +113,7 @@ class ContentLoaderBase implements ContentLoaderInterface {
 
     // @todo Break this out into `$this->importEntityFields()`.
     // Import the entity fields if applicable.
-    if ($entity instanceof ContentEntityInterface) {
+    if ($entity instanceof FieldableEntityInterface) {
 
       $field_definitions = $entity->getFieldDefinitions();
 
@@ -150,10 +145,10 @@ class ContentLoaderBase implements ContentLoaderInterface {
 
     // Iterate over each field value.
     foreach ($field_data as $field_item) {
-      $field_value = $this->importFieldItem(is_array($field_item) ? $field_item : [$field_item], $entity, $field_definition);
+      $field_value = $this->importFieldItem($field_item, $entity, $field_definition);
 
-      // @todo Assign or append field item value.
-      $entity->{$field_definition->getName()}->appendItem($field_value);
+      // Assign or append field item value.
+      $this->assignFieldValue($entity, $field_definition->getName(), $field_value);
     }
 
     // @todo Postprocess loaded field object.
@@ -169,11 +164,11 @@ class ContentLoaderBase implements ContentLoaderInterface {
    * @return mixed
    *   The processed field item value for storage in the field.
    */
-  public function importFieldItem(array $field_item_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
+  public function importFieldItem($field_item_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
     // @todo Preprocess field item data.
 
     // Is it an entity reference?
-    if (isset($field_item_data['entity'])) {
+    if (is_array($field_item_data) && isset($field_item_data['entity'])) {
       $item_value = $this->importEntity($field_item_data);
     }
     else {
@@ -221,5 +216,36 @@ class ContentLoaderBase implements ContentLoaderInterface {
     $entity = $entity_handler->create($properties);
 
     return $entity;
+  }
+
+  /**
+   * Set or assign a field value based on field cardinality.
+   *
+   * @param FieldableEntityInterface $entity
+   * @param string $field_name
+   * @param $value
+   */
+  public function assignFieldValue(FieldableEntityInterface $entity, string $field_name, $value) {
+    $field = $entity->$field_name;
+
+    // Get the field cardinality to determine whether or not a value should be
+    // 'set' or 'appended' to.
+    $cardinality = $field->getFieldDefinition()
+      ->getFieldStorageDefinition()
+      ->getCardinality();
+
+    // If the cardinality is 0, throw an exception.
+    if (!$cardinality) {
+      throw new \InvalidArgumentException("'{$field->getName()}' cannot hold any values.");
+    }
+
+    // If the cardinality is set to 1, set the field value directly.
+    if ($cardinality == 1) {
+      $field->setValue($value);
+    }
+    else {
+      $field->appendItem($value);
+    }
+
   }
 }
