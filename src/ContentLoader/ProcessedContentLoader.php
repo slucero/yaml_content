@@ -111,14 +111,26 @@ class ProcessedContentLoader extends ContentLoaderBase {
     $processor_definition = $this->processorPluginManager->getDefinition($processor_id);
 
     // @todo Implement exception class for invalid processors.
-    if (!$processor_definition->import) {
+    if (!$processor_definition['import']) {
       throw new \Exception(sprintf('The %s processor does not support import operations.', $processor_id));
     }
 
     // Instantiate the processor plugin with default config values.
-    $processor = $this->processorPluginManager->createInstance($processor_id, $processor_definition['config']);
+    $processor = $this->processorPluginManager->createInstance($processor_id);
 
-    // @todo Set and validate context values.
+    // Set and validate context values.
+    foreach ($processor_definition['context'] as $name => $definition) {
+      if (isset($context[$name])) {
+        // @todo Validate context types and values.
+        $processor->setContextValue($name, $context[$name]);
+      }
+      else {
+        // Handle missing required contexts.
+        if ($definition->isRequired()) {
+          // @todo Handle this exception.
+        }
+      }
+    }
 
     return $processor;
   }
@@ -159,8 +171,10 @@ class ProcessedContentLoader extends ContentLoaderBase {
           'Preprocess plugin [' . $data['#plugin'] . '] failed to load a valid ImportProcessor plugin.');
 
         // @todo Provide required context as defined by plugin definition.
+        $processor->setContextValue('import_data', $import_data);
 
         // @todo Execute plugin on $import_data.
+        $processor->preprocess();
       }
       else {
         throw new Exception('Preprocessing instructions require a defined "#plugin" identifier.');
