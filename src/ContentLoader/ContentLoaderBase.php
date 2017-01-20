@@ -150,7 +150,7 @@ class ContentLoaderBase implements ContentLoaderInterface {
 
     // Iterate over each field value.
     foreach ($field_data as $field_item) {
-      $field_value = $this->importFieldItem($field_item);
+      $field_value = $this->importFieldItem(is_array($field_item) ? $field_item : [$field_item], $entity, $field_definition);
 
       // @todo Assign or append field item value.
       $entity->{$field_definition->getName()}->appendItem($field_value);
@@ -163,28 +163,24 @@ class ContentLoaderBase implements ContentLoaderInterface {
    * Process import data for an individual field list item value.
    *
    * @param $field_item_data
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    *
    * @return mixed
    *   The processed field item value for storage in the field.
    */
-  public function importFieldItem($field_item_data) {
-    if (is_array($field_item_data)) {
-      // @todo Preprocess field item data.
+  public function importFieldItem(array $field_item_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
+    // @todo Preprocess field item data.
 
-      // Is it an entity reference?
-      if (isset($field_item_data['entity'])) {
-        $item_value = $this->importEntity($field_item_data);
-      }
-      else {
-        $item_value = $field_item_data;
-      }
-
-      // @todo Postprocess field item object.
+    // Is it an entity reference?
+    if (isset($field_item_data['entity'])) {
+      $item_value = $this->importEntity($field_item_data);
     }
     else {
-      // Return a simple value.
       $item_value = $field_item_data;
     }
+
+    // @todo Postprocess field item object.
 
     return $item_value;
   }

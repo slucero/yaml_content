@@ -78,16 +78,16 @@ class ProcessedContentLoader extends ContentLoaderBase {
   /**
    * {@inheritdoc}
    */
-  public function importFieldItem($field_item_data) {
+  public function importFieldItem(array $field_item_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
     // Preprocess field data.
     $field_context['entity'] = $entity;
     $field_context['field'] = $field_definition;
-    $this->preprocessData($field_data, $field_context);
+    $this->preprocessData($field_item_data, $field_context);
 
-    $item_value = parent::importFieldItem($field_item_data);
+    $item_value = parent::importFieldItem($field_item_data, $entity, $field_definition);
 
     // Postprocess loaded field data.
-    $this->postprocessData($field_data, $entity, $field_context);
+    $this->postprocessData($field_item_data, $entity, $field_context);
   }
 
   /**
