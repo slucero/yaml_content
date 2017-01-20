@@ -4,9 +4,12 @@ namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Config\ConfigValueException;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\TypedData\Exception\MissingDataException;
+use Drupal\yaml_content\ImportProcessorInterface;
 use Symfony\Component\Config\Definition\Exception\Exception;
 use \Symfony\Component\Yaml\Parser;
 
@@ -29,6 +32,11 @@ class ProcessedContentLoader extends ContentLoaderBase {
 
   /**
    * ProcessedContentLoader constructor.
+   *
+   * Overrides the constructor to pull in the content processor plugin manager.
+   *
+   * @param EntityTypeManagerInterface $entityTypeManager
+   * @param PluginManagerInterface $processorPluginManager
    */
   public function __construct(EntityTypeManagerInterface $entityTypeManager, PluginManagerInterface $processorPluginManager) {
     parent::__construct($entityTypeManager);
@@ -37,177 +45,49 @@ class ProcessedContentLoader extends ContentLoaderBase {
   }
 
   /**
-   * Import the provided data.
-   *
-   * Content data may be manipulated using the following keys:
-   *   - `#preprocess`: Processors are executed prior to content creation to
-   *     dynamically alter the defined configuration.
-   *   - `#postprocess`: Processors are executed on the created content items
-   *     prior to saving.
-   *
-   * @param array $content_data
-   * @param array $context
+   * {@inheritdoc}
    */
-  public function importData(array $content_data, $context = array()) {
-    // Are we building an entity?
-    if (isset($content_data['entity'])) {
-      $import_content = $this->buildEntity($content_data['entity'], $content_data, $context);
-    }
-    // Run processing on content data.
-    else {
-      // Pass back this content data since it's passed through processing.
-      $import_content = $content_data;
-    }
+  public function importEntity(array $content_data) {
+    // Preprocess the content data.
+    $entity_context = [];
+    $this->preprocessData($content_data, $entity_context);
 
-    return $import_content;
-  }
+    $entity = parent::importEntity($content_data, $entity_context);
 
-  /**
-   * Build an entity from the provided content data.
-   *
-   * @param string $entity_type
-   * @param array $content_data
-   *   Parameters:
-   *     - `entity`: (required) The entity type machine name.
-   *     - `bundle`: (required) The bundle machine name.
-   *     - Additional field and property data keyed by field or property name.
-   *
-   * @return \Drupal\Core\Entity\EntityInterface
-   */
-  public function buildEntity(string $entity_type, array $content_data, array &$context) {
-    if (!$this->entityTypeManager->hasDefinition($entity_type)) {
-      // @todo Update this to use `t()`.
-      throw new Exception(sprintf('Invalid entity type: %s', $entity_type));
-    }
-
-    // Load entity type definition.
-    $entity_definition = $this->entityTypeManager->getDefinition($entity_type);
-    $entity_keys = $entity_definition->getKeys();
-
-    // Load entity type handler.
-    $entity_handler = $this->entityTypeManager->getStorage($entity_type);
-
-    // Map generic entity keys into entity-specific values.
-    $properties = array();
-    foreach ($entity_keys as $source => $target) {
-      if (isset($content_data[$source])) {
-        $properties[$target] = $content_data[$source];
-      }
-      elseif (isset($content_data[$target])) {
-        $properties[$target] = $content_data[$target];
-      }
-    }
-
-    // Create entity.
-    $context['entity'] = $entity = $entity_handler->create($properties);
-
-    // Keys for exclusion due to use in content structuring.
-    $structure_keys = array(
-      'entity' => '',
-    );
-
-    // All keys to be excluded from content generation.
-    $excluded_keys = array_merge(
-      $structure_keys,
-      $entity_keys,
-      $properties
-    );
-
-    $this->importEntityFields($entity, array_diff_key($content_data, $excluded_keys), $content_data);
-  }
-
-  /**
-   * Import multiple fields on an entity.
-   *
-   * @param $entity
-   * @param array $field_content
-   * @return mixed
-   */
-  protected function importEntityFields($entity, array $field_content) {
-    // @todo Preprocess with entity stub and field data.
-
-    // Iterate over each field with data.
-    foreach ($field_content as $field_name => $field_data) {
-      try {
-        if ($entity->$field_name) {
-           // Run import process for each field.
-          $this->importFieldData($entity, $field_name, $field_data);
-        }
-        else {
-          throw new FieldException('Undefined field: ' . $field_name);
-        }
-      }
-      catch (FieldException $exception) {
-        watchdog_exception('yaml_content', $exception);
-      }
-      catch (MissingDataException $exception) {
-        watchdog_exception('yaml_content', $exception);
-      }
-      catch (ConfigValueException $exception) {
-        watchdog_exception('yaml_content', $exception);
-      }
-    }
-
-    // @todo Postprocess with populated entity.
+    // Postprocess loaded entity object.
+    $this->postprocessData($content_data, $entity, $entity_context);
 
     return $entity;
   }
 
   /**
-   * Import field items for an individual field.
-   *
-   * @param $entity
-   * @param string $field_name
-   * @param array $field_data
+   * {@inheritdoc}
    */
-  public function importFieldData($entity, string $field_name, $field_data) {
-    // @todo Preprocess overall field item data.
+  public function importEntityField(array $field_data, EntityInterface $entity, FieldDefinitionInterface $field_definition) {
+    // Preprocess field data.
+    $field_context['entity'] = $entity;
+    $field_context['field'] = $field_definition;
+    $this->preprocessData($field_data, $field_context);
 
-    if (!is_array($field_data)) {
-      $field_data = array($field_data);
-    }
+    parent::importEntityField($field_data, $entity, $field_definition);
 
-    // Process each individual field item.
-    foreach ($field_data as $data_item) {
-      // @todo Preprocess individual field item.
-
-      // @todo Process complex data values like references.
-
-      // @todo Postprocess individual field item.
-
-      // Assign the field item to the field.
-      $entity->$field_name->appendItem($data_item);
-    }
-
-    // @todo Postprocess overall field item data.
+    // Postprocess loaded field data.
+    $this->postprocessData($field_data, $entity, $field_context);
   }
 
   /**
-   * Populate field content into the provided field.
-   *
-   * @param $field
-   * @param array $field_data
-   *
-   * @todo Handle field data types more dynamically with typed data.
+   * {@inheritdoc}
    */
-  protected function populateField($field, array &$field_data) {
-    // Iterate over each value.
-    foreach ($field_data as &$field_item) {
+  public function importFieldItem($field_item_data) {
+    // Preprocess field data.
+    $field_context['entity'] = $entity;
+    $field_context['field'] = $field_definition;
+    $this->preprocessData($field_data, $field_context);
 
-      // Preprocess field data.
-      $this->preprocessFieldData($field, $field_item);
+    $item_value = parent::importFieldItem($field_item_data);
 
-      $is_reference = isset($field_item['entity']);
-
-      if ($is_reference) {
-        // @todo Dynamically determine the type of reference.
-
-        // Create entity.
-        $field_item = $this->buildEntity($field_item['entity'], $field_item);
-      }
-
-      $field->appendItem($field_item);
-    }
+    // Postprocess loaded field data.
+    $this->postprocessData($field_data, $entity, $field_context);
   }
 
   /**
@@ -218,11 +98,14 @@ class ProcessedContentLoader extends ContentLoaderBase {
    *
    * @param $processor_id
    * @param array $context
+   *
+   * @return mixed
+   *
    * @throws \Exception
    *
    * @todo Handle PluginNotFoundException.
    */
-  protected function loadProcessor($processor_id, array &$context) {
+  public function loadProcessor($processor_id, array &$context) {
     $processor_definition = $this->processorPluginManager->getDefinition($processor_id);
 
     // @todo Implement exception class for invalid processors.
@@ -248,22 +131,41 @@ class ProcessedContentLoader extends ContentLoaderBase {
    * @param array $import_data
    *   The current content data being evaluated for import. This array is
    *   altered directly and returned without the processing key.
-   * @param string $operations_key
-   *   The key for the processing operations to be executed.
+   * @param array $context
+   *   Contextual data passed by reference to preprocessing plugins.
    *
    * @throws Exception
    */
-  public function preprocessData(array &$import_data, array $context) {
+  public function preprocessData(array &$import_data, array &$context) {
+    // Abort if there are no preprocessing instructions.
+    if (!isset($import_data['#preprocess'])) {
+      return;
+    }
+
     if (!is_array($import_data['#preprocess'])) {
-      throw new Exception('Processing instructions must be provided as an array.');
+      throw new Exception('Preprocessing instructions must be provided as an array.');
     }
 
     // Execute all processing actions.
     foreach ($import_data['#preprocess'] as $key => $data) {
       // @todo Execute preprocess actions.
+      if (isset($data['#plugin'])) {
+        // Load the plugin.
+        $processor = $this->loadProcessor($data['#plugin'], $context);
+
+        assert($processor instanceof ImportProcessorInterface,
+          'Preprocess plugin [' . $data['#plugin'] . '] failed to load a valid ImportProcessor plugin.');
+
+        // @todo Provide required context as defined by plugin definition.
+
+        // @todo Execute plugin on $import_data.
+      }
+      else {
+        throw new Exception('Preprocessing instructions require a defined "#plugin" identifier.');
+      }
     }
 
-    // Remove executed processing data.
+    // Remove executed preprocess data.
     unset($import_data['#preprocess']);
   }
 
@@ -277,86 +179,39 @@ class ProcessedContentLoader extends ContentLoaderBase {
    * @param array $import_data
    *   The current content data being evaluated for import. This array is
    *   altered directly and returned without the processing key.
-   * @param string $operations_key
-   *   The key for the processing operations to be executed.
+   * @param $loaded_content
+   *   The loaded content object generated from the given import data.
+   * @param array $context
+   *   Contextual data passed by reference to preprocessing plugins.
    *
    * @throws Exception
    */
-  public function postprocessData(&$import_content, array $content_data, array $context) {
-    if (!is_array($content_data['#postprocess'])) {
-      throw new Exception('Processing instructions must be provided as an array.');
+  public function postprocessData(array &$import_data, &$loaded_content, array &$context) {
+    // Abort if there are no postprocessing instructions.
+    if (!isset($import_data['#postprocess'])) {
+      return;
+    }
+
+    if (!is_array($import_data['#postprocess'])) {
+      throw new Exception('Postprocessing instructions must be provided as an array.');
     }
 
     // Execute all processing actions.
-    foreach ($content_data['#postprocess'] as $key => $data) {
+    foreach ($import_data['#postprocess'] as $key => $data) {
       // @todo Execute postprocess actions.
-    }
-  }
+      if (isset($data['#plugin'])) {
+        // Load the plugin.
+        $processor = $this->loadProcessor($data['#plugin'], $context);
 
-  /**
-   * Filter array keys to only those starting with '#'.
-   *
-   * Array keys starting with '#' are used to indicate special data processing
-   * is needed. This function is a helper to identify only those keys indicating
-   * special processing instructions.
-   *
-   * The original array passed into this remains unaltered.
-   *
-   * @param array $data
-   *   The content data array currently being processed.
-   *
-   * @return array
-   *   An array of only the keys starting with '#'.
-   */
-  protected function getProcessKeys(array $data) {
-    // Filter only array keys starting with '#'.
-    $process_keys = array_filter($data, function($key) {
-      return (substr($key, 0, 1) == '#');
-    }, ARRAY_FILTER_USE_KEY);
+        assert($processor instanceof ImportProcessorInterface,
+          'Postprocess plugin [' . $data['#plugin'] . '] failed to load a valid ImportProcessor plugin.');
 
-    return $process_keys;
-  }
+        // @todo Provide required context as defined by plugin definition.
 
-  /**
-   * Run any designated preprocessors on the provided field data.
-   *
-   * Preprocessors are expected to be provided in the following format:
-   *
-   * ```yaml
-   *   '#process':
-   *     callable: '<callable string>'
-   *     args:
-   *       - <callable argument 1>
-   *       - <callable argument 2>
-   *       - <...>
-   * ```
-   *
-   * The callable function receives the following arguments:
-   *
-   *   - `$field`
-   *   - `$field_data`
-   *   - <callable argument 1>
-   *   - <callable argument 2>
-   *   - <...>
-   *
-   * The `$field_data` array is passed by reference and may be modified directly
-   * by the callable implementation.
-   *
-   * @param $field
-   * @param array $field_data
-   */
-  protected function preprocessFieldData($field, array &$field_data) {
-    // Check for a callable processor defined at the value level.
-    if (isset($field_data['#process'])) {
-      $callable = $field_data['#process']['callable'];
-
-      if (is_callable($callable)) {
-        // Append callback arguments to field object and value data.
-        $args = array_merge([$field, &$field_data], $field_data['#process']['args'] ?? []);
-        call_user_func_array($callable, $args);
+        // @todo Execute plugin on $loaded_content.
       }
       else {
-        throw new ConfigValueException('Uncallable processor provided: ' . $callable);
+        throw new Exception('Postprocessing instructions require a defined "#plugin" identifier.');
       }
     }
   }
