@@ -164,8 +164,11 @@ class ProcessedContentLoader extends ContentLoaderBase {
     foreach ($import_data['#preprocess'] as $key => $data) {
       // @todo Execute preprocess actions.
       if (isset($data['#plugin'])) {
+        // Expose preprocess configuration into context for the plugin.
+        $processor_context = array_merge($context, $import_data);
+
         // Load the plugin.
-        $processor = $this->loadProcessor($data['#plugin'], $context);
+        $processor = $this->loadProcessor($data['#plugin'], $processor_context);
 
         assert($processor instanceof ImportProcessorInterface,
           'Preprocess plugin [' . $data['#plugin'] . '] failed to load a valid ImportProcessor plugin.');
