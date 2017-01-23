@@ -2,9 +2,8 @@
 
 namespace Drupal\yaml_content;
 
-use Drupal\Component\Plugin\ContextAwarePluginBase;
-use Drupal\Core\Executable\ExecutablePluginBase;
+use Drupal\Core\Plugin\ContextAwarePluginBase;
 
-abstract class ContentProcessorBase extends ExecutablePluginBase implements ContentProcessorInterface {
+abstract class ContentProcessorBase extends ContextAwarePluginBase implements ContentProcessorInterface {
 
 }
