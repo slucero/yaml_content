@@ -2,6 +2,7 @@
 
 namespace Drupal\yaml_content\Plugin\YamlContent;
 
+use Drupal\Core\Annotation\ContextDefinition;
 use Drupal\yaml_content\ImportProcessorBase;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\TypedData\Exception\MissingDataException;
@@ -12,11 +13,34 @@ use Drupal\Core\TypedData\Exception\MissingDataException;
  * @ImportProcessor(
  *   id = "entity_reference_import_processor",
  *   label = @Translation("Entity Reference Import Processor"),
- *   config = {
- *     "entity_type" = NULL,
- *     "filters" = NULL,
- *     "limit" = 0,
- *   },
+ *   context = {
+ *     "import_data" = @ContextDefinition("any", label = @Translation("Import data")),
+ *     "entity_type" = @ContextDefinition(
+ *       "any",
+ *       label = @Translation("Entity type"),
+ *       required = "TRUE"
+ *     ),
+ *     "bundle" = @ContextDefinition(
+ *       "any",
+ *       label = @Translation("Bundle"),
+ *       required = "FALSE"
+ *     ),
+ *     "type" = @ContextDefinition(
+ *       "any",
+ *       label = @Translation("Content type"),
+ *       required = "FALSE"
+ *     ),
+ *     "limit" = @ContextDefinition(
+ *       "any",
+ *       label = @Translation("Result limit"),
+ *       required = "FALSE"
+ *     ),
+ *     "conditions" = @ContextDefinition(
+ *       "any",
+ *       label = @Translation("Query conditions"),
+ *       required = "FALSE"
+ *     ),
+ *   }
  * )
  */
 class EntityReferenceImportProcessor extends ImportProcessorBase {
@@ -30,6 +54,10 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
    * {@inheritdoc}
    */
   public function execute() {
+
+  }
+
+  public function preprocess() {
     if (!$this->query) {
       $this->buildQuery();
     }
@@ -53,7 +81,7 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
    * @return \Drupal\Core\Entity\Query\QueryInterface
    */
   protected function buildQuery() {
-    $entity_type = $this->configuration['entity_type'];
+    $entity_type = $this->getContextValue('entity_type');
     $this->query = \Drupal::entityQuery($entity_type);
 
     // Apply filters.
@@ -67,6 +95,40 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
     }
 
     return $this->query;
+  }
+
+  /**
+   *
+   * @todo Add support for `range()` operator instead of just `limit`.
+   * @todo Add support for `condition()` operators.
+   */
+  protected function applyFilters() {
+    $context = $this->getContextValues();
+    foreach ($context as $name => $value) {
+
+      // Handle special cases.
+      switch($name) {
+        // Entity type should be already applied at query creation and require
+        // nothing further.
+        case 'entity_type':
+          break;
+
+        // Specially handle a `bundle` or `type` key for convenience.
+        case 'bundle': case 'type':
+          $this->query->condition('type', $value);
+          break;
+
+        case 'limit':
+          // Assume starting at 0 to apply limit only.
+          $this->query->range(0, $value);
+          break;
+
+        case 'conditions':
+          foreach ($value as $field => $filter) {
+            $this->query->condition($field, $value);
+          }
+      }
+    }
   }
 
   /**
