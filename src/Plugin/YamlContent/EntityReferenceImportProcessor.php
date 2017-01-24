@@ -53,11 +53,7 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
   /**
    * {@inheritdoc}
    */
-  public function execute() {
-
-  }
-
-  public function preprocess() {
+  public function preprocess(array &$import_data) {
     if (!$this->query) {
       $this->buildQuery();
     }
@@ -65,10 +61,11 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
     $results = $this->query->execute();
 
     if (empty($results)) {
-      return $this->noResults();
+      // @todo Handle empty result sets.
+      //return $this->noResults();
     }
 
-    return $this->processResults($results);
+    $this->processResults($import_data, $results);
   }
 
   /**
@@ -84,15 +81,7 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
     $entity_type = $this->getContextValue('entity_type');
     $this->query = \Drupal::entityQuery($entity_type);
 
-    // Apply filters.
-    foreach ($this->configuration['filters'] as $property => $value) {
-      $this->addQueryFilter($entity_type, $property, $value);
-    }
-
-    // Handle any limits on the number of results allowed.
-    if (isset($this->configuration['limit']) && $this->configuration['limit'] > 0) {
-      $this->query->range(0, $this->configuration['limit']);
-    }
+    $this->applyFilters();
 
     return $this->query;
   }
@@ -106,27 +95,32 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
     $context = $this->getContextValues();
     foreach ($context as $name => $value) {
 
-      // Handle special cases.
-      switch($name) {
-        // Entity type should be already applied at query creation and require
-        // nothing further.
-        case 'entity_type':
-          break;
+      // Only apply filters for populated values.
+      if (!is_null($value)) {
+        // Handle special cases.
+        switch ($name) {
+          // Entity type should be already applied at query creation and require
+          // nothing further.
+          case 'entity_type':
+            break;
 
-        // Specially handle a `bundle` or `type` key for convenience.
-        case 'bundle': case 'type':
-          $this->query->condition('type', $value);
-          break;
+          // Specially handle a `bundle` or `type` key for convenience.
+          case 'bundle':
+          case 'type':
+            $this->query->condition('type', $value);
+            break;
 
-        case 'limit':
-          // Assume starting at 0 to apply limit only.
-          $this->query->range(0, $value);
-          break;
+          case 'limit':
+            // Assume starting at 0 to apply limit only.
+            $this->query->range(0, $value);
+            break;
 
-        case 'conditions':
-          foreach ($value as $field => $filter) {
-            $this->query->condition($field, $value);
-          }
+          case 'conditions':
+            foreach ($value as $field => $filter) {
+              $op = is_array($filter) ? 'IN' : '=';
+              $this->query->condition($field, $filter, $op);
+            }
+        }
       }
     }
   }
@@ -165,19 +159,15 @@ class EntityReferenceImportProcessor extends ImportProcessorBase {
   /**
    * Process entity ID results into expected content structure.
    *
+   * @param array $import_data
    * @param array $result_set
-   * @return array
-   *   The content array for use as part of the import process.
    */
-  protected function processResults(array $result_set) {
-    $field_data = array();
-
+  protected function processResults(array &$import_data, array $result_set) {
+    // Format and append entity reference value.
     foreach ($result_set as $entity_id) {
-      $field_data[] = array(
+      $import_data[] = array(
         'target_id' => $entity_id,
       );
     }
-
-    return $field_data;
   }
 }
