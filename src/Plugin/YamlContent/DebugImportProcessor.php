@@ -12,29 +12,25 @@ use Drupal\yaml_content\ImportProcessorBase;
  *   id = "debug_import_processor",
  *   label = @Translation("Debug Import Processor"),
  *   context = {
- *     "import_data" = @ContextDefinition("any", label = @Translation("Import data"))
+ *     "import_data" = @ContextDefinition("string",
+ *       label = @Translation("Import data"),
+ *       description = @Translation("The content array being imported.")
+ *     )
  *   }
  * )
  */
 class DebugImportProcessor extends ImportProcessorBase {
-
-  /**
-   * @var \Drupal\Core\Entity\Query\QueryInterface
-   */
-  protected $query;
-
   /**
    * {@inheritdoc}
    */
-  public function execute() {
-
-  }
-
-  public function preprocess() {
+  public function preprocess(array &$import_data) {
     $import_data = $this->getContextValue('import_data');
     dpm($import_data, 'Debug Import Processor');
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function postprocess() {
 
   }

@@ -165,7 +165,7 @@ class ProcessedContentLoader extends ContentLoaderBase {
       // @todo Execute preprocess actions.
       if (isset($data['#plugin'])) {
         // Expose preprocess configuration into context for the plugin.
-        $processor_context = array_merge($context, $import_data);
+        $processor_context = array_merge($context, $data);
 
         // Load the plugin.
         $processor = $this->loadProcessor($data['#plugin'], $processor_context);
@@ -177,7 +177,7 @@ class ProcessedContentLoader extends ContentLoaderBase {
         $processor->setContextValue('import_data', $import_data);
 
         // @todo Execute plugin on $import_data.
-        $processor->preprocess();
+        $processor->preprocess($import_data);
       }
       else {
         throw new Exception('Preprocessing instructions require a defined "#plugin" identifier.');
