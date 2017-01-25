@@ -14,7 +14,6 @@ use Drupal\Core\TypedData\Exception\MissingDataException;
  *   id = "entity_reference_import_processor",
  *   label = @Translation("Entity Reference Import Processor"),
  *   context = {
- *     "import_data" = @ContextDefinition("any", label = @Translation("Import data")),
  *     "entity_type" = @ContextDefinition(
  *       "any",
  *       label = @Translation("Entity type"),
