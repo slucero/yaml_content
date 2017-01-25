@@ -6,3 +6,6 @@ services:
   yaml_content.content_loader:
     class: Drupal\yaml_content\ContentLoader\ProcessedContentLoader
     arguments: ['@entity_type.manager', '@plugin.manager.yaml_content']
+  yaml_content.sample_data_loader:
+    class: Drupal\yaml_content\SampleDataLoader
+    arguments: ['@serialization.yaml']

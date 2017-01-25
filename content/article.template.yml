@@ -1,0 +1,37 @@
+# Article content type template demonstrating sample data
+---
+entity: "node"
+type: "article"
+title:
+  "#preprocess":
+    # Generated title
+    - '#plugin': 'sample_data'
+      dataset:
+        # File lookup information
+        module: 'yaml_content'
+        path: 'content/data'
+        file: 'article'
+      # The key to load data from
+      lookup: 'title'
+      data_type: 'short_text'
+body:
+  - format: full_html
+  - value:
+    #Generated markup
+     - '#plugin': 'sample_data'
+        dataset:
+          # File lookup information
+          module: 'yaml_content'
+          path: 'content/data'
+          file: 'article'
+        # The key to load data from
+        lookup: 'body'
+        data_type: 'rich_text'
+field_tags:
+  "#preprocess":
+    # Randomized tags
+field_image:
+  "#preprocess":
+    # Generated image
+    - '#plugin': 'sample_data'
+      data_type: 'image'

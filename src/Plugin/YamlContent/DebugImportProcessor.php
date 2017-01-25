@@ -7,7 +7,7 @@ use Drupal\yaml_content\ImportProcessorBase;
 
 /**
  * Import processor to support entity queries and references.
- **
+ *
  * @ImportProcessor(
  *   id = "debug_import_processor",
  *   label = @Translation("Debug Import Processor"),
