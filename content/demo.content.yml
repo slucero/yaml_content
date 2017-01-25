@@ -1,0 +1,58 @@
+# Demonstration content for interrelated imports.
+---
+# Add taxonomy terms to be referenced from later content.
+# All top-level array items must be separate entities for import.
+- entity: "taxonomy_term"
+  bundle: "tags"
+  name: "Generated content"
+- entity: "taxonomy_term"
+  bundle: "tags"
+  name: "Imported demo content"
+
+# Add a basic article page with simple values.
+- entity: "node"
+  type: "article"
+  title: "Basic Article"
+  status: 1
+  # Rich text fields contain multiple keys that must be provided.
+  body:
+    format: "basic_html"
+    # Using a pipe we can define content across multiple lines.
+    value: |
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vobis
+      voluptatum perceptarum recordatio vitam beatam facit, et quidem corpore
+      perceptarum. Tum Quintus: Est plane, Piso, ut dicis, inquit.</p>
+      <p>Primum cur ista res digna odio est, nisi quod est turpis? Duo Reges:
+      constructio interrete. Rhetorice igitur, inquam, nos mavis quam
+      dialectice disputare?</p>
+
+# Articles may also be more complex and include referenced content like tags.
+- entity: "node"
+  type: "article"
+  title: "Tagged Article"
+  status: 1
+  body:
+    format: "basic_html"
+    # Using a pipe we can define content across multiple lines.
+    value: |
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vobis
+      voluptatum perceptarum recordatio vitam beatam facit, et quidem corpore
+      perceptarum. Tum Quintus: Est plane, Piso, ut dicis, inquit.Primum cur
+      ista res digna odio est, nisi quod est turpis? Duo Reges: constructio
+      interrete. Rhetorice igitur, inquam, nos mavis quam dialectice disputare?</p>
+  # Since the tags to be used were created above, we don't know their IDs and have to look them up dynamically.
+  field_tags:
+    # This is done via a preprocessor.
+    '#preprocess':
+      # First we designate an import preprocessor plugin to be used.
+      - '#plugin': "entity_reference_import_processor"
+        # Then we give it the configuration options to produce the results we want.
+        entity_type: "taxonomy_term"
+        # An array of conditions may be provided and passed through to EntityQuery::condition
+        conditions:
+          vid: "tags"
+          # The key should be the condition field, and the value should be either a single value to match or
+          # multiple values to match with "IN".
+          name:
+            - "Generated content"
+            - "Imported demo content"
