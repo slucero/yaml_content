@@ -1,0 +1,20 @@
+# A simple article template to demonstrate template usage.
+#
+# The template is included directly into the parent, so this may impact whether
+# the top level should be an array or not as seen in typical content files.
+---
+entity: "node"
+type: "article"
+title: "Basic Article"
+status: 1
+# Rich text fields contain multiple keys that must be provided.
+body:
+  format: "basic_html"
+  # Using a pipe we can define content across multiple lines.
+  value: |
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed vobis
+    voluptatum perceptarum recordatio vitam beatam facit, et quidem corpore
+    perceptarum. Tum Quintus: Est plane, Piso, ut dicis, inquit.</p>
+    <p>Primum cur ista res digna odio est, nisi quod est turpis? Duo Reges:
+    constructio interrete. Rhetorice igitur, inquam, nos mavis quam
+    dialectice disputare?</p>

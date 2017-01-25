@@ -1,0 +1,11 @@
+# Import example demonstrating template usage.
+---
+# Generate templated articles.
+- '#preprocess':
+  - '#plugin': 'template_processor'
+    # Indicate the template to be loaded matching <template>.template.yml.
+    template: 'article_dummy'
+    # Indicate the module to look in for the template.
+    module: 'yaml_content'
+    # Indicate how many times the template should be used to build content.
+    count: 5
