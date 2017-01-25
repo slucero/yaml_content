@@ -173,9 +173,6 @@ class ProcessedContentLoader extends ContentLoaderBase {
         assert($processor instanceof ImportProcessorInterface,
           'Preprocess plugin [' . $data['#plugin'] . '] failed to load a valid ImportProcessor plugin.');
 
-        // @todo Provide required context as defined by plugin definition.
-        $processor->setContextValue('import_data', $import_data);
-
         // @todo Execute plugin on $import_data.
         $processor->preprocess($import_data);
       }
