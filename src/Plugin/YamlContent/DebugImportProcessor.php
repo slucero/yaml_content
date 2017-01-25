@@ -18,14 +18,16 @@ class DebugImportProcessor extends ImportProcessorBase {
    * {@inheritdoc}
    */
   public function preprocess(array &$import_data) {
-    $import_data = $this->getContextValue('import_data');
-    dpm($import_data, 'Debug Import Processor');
+    dpm($import_data, 'Debug Import Processor: Pre-process');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function postprocess() {
-
+  public function postprocess(array &$import_data, &$imported_content) {
+    dpm(array(
+      'Import data' => $import_data,
+      'Imported content' => $imported_content,
+    ), 'Debug Import Processor: Post-process');
   }
 }
