@@ -33,10 +33,10 @@ class SampleDataProcessor extends ImportProcessorBase {
    * {@inheritdoc}
    */
   public function preprocess(array &$import_data) {
-    $context = $this->getContextValues();
+    $context = $this->configuration;
 
     if (isset($context['dataset'])) {
-      $data = $this->loadSampleData($context['dataset']);
+      $data = $this->loadSampleDataSet($context['dataset']);
 
       $value = $data->get($context['lookup']);
     }
@@ -48,9 +48,24 @@ class SampleDataProcessor extends ImportProcessorBase {
     $import_data[] = $value;
   }
 
-  protected function loadSampleData(array $config) {
+  /**
+   * Load sample data set.
+   *
+   * The following keys are searched for within the $config array:
+   * - module
+   *   The module containing the data file to be loaded.
+   * - path
+   *   The path within the module to look for the data file. Defaults to
+   *   `content/data`.
+   * - file
+   *   The name of the data file such that the file name is `<file>.data.yml`.
+   *
+   * @param array $config
+   * @return \Drupal\yaml_content\SampleDataSet
+   */
+  protected function loadSampleDataSet(array $config) {
     $path = drupal_get_path('module', $config['module']);
-    $path .= '/' . $config['path'];
+    $path .= '/' . (isset($config['path']) ? $config['path'] : 'content/data');
     $path .= '/' . $config['file'] . '.data.yml';
 
     $data = $this->data_loader->loadDataSet($path);
