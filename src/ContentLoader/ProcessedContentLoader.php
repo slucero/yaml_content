@@ -187,6 +187,27 @@ class ProcessedContentLoader extends ContentLoaderBase {
     unset($import_data['#preprocess']);
   }
 
+  public function recursivelyPreprocessData(&$import_data) {
+    if (!is_array($import_data)) {
+      return;
+    }
+
+    foreach ($import_data as $key => &$value) {
+      // Preprocess each array value recursively.
+      if (is_array($value)) {
+        $context = [];
+
+        // Preprocess this branch.
+        $this->preprocessData($value, $context);
+
+        // Recurse further for additional preprocessing.
+        if (is_array($value)) {
+          array_walk($value, [$this, 'recursivelyPreprocessData']);
+        }
+      }
+    }
+  }
+
   /**
    * Evaluate the current import data array and run any preprocessing needed.
    *
