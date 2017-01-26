@@ -116,18 +116,20 @@ class ProcessedContentLoader extends ContentLoaderBase {
     }
 
     // Instantiate the processor plugin with default config values.
-    $processor = $this->processorPluginManager->createInstance($processor_id);
+    $processor = $this->processorPluginManager->createInstance($processor_id, $context);
 
     // Set and validate context values.
-    foreach ($processor_definition['context'] as $name => $definition) {
-      if (isset($context[$name])) {
-        // @todo Validate context types and values.
-        $processor->setContextValue($name, $context[$name]);
-      }
-      else {
-        // Handle missing required contexts.
-        if ($definition->isRequired()) {
-          // @todo Handle this exception.
+    if (isset($processor_definition['context'])) {
+      foreach ($processor_definition['context'] as $name => $definition) {
+        if (isset($context[$name])) {
+          // @todo Validate context types and values.
+          $processor->setContextValue($name, $context[$name]);
+        }
+        else {
+          // Handle missing required contexts.
+          if ($definition->isRequired()) {
+            // @todo Handle this exception.
+          }
         }
       }
     }
@@ -162,7 +164,7 @@ class ProcessedContentLoader extends ContentLoaderBase {
 
     // Execute all processing actions.
     foreach ($import_data['#preprocess'] as $key => $data) {
-      // @todo Execute preprocess actions.
+      // Execute preprocess actions.
       if (isset($data['#plugin'])) {
         // Expose preprocess configuration into context for the plugin.
         $processor_context = array_merge($context, $data);
@@ -173,7 +175,7 @@ class ProcessedContentLoader extends ContentLoaderBase {
         assert($processor instanceof ImportProcessorInterface,
           'Preprocess plugin [' . $data['#plugin'] . '] failed to load a valid ImportProcessor plugin.');
 
-        // @todo Execute plugin on $import_data.
+        // Execute plugin on $import_data.
         $processor->preprocess($import_data);
       }
       else {
