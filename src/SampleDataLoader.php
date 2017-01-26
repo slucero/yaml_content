@@ -20,10 +20,7 @@ class SampleDataLoader {
   /**
    * SampleData constructor.
    *
-   * @param string $file_path
-   *   The path to a yaml sample data file.
-   * @param string $src_theme
-   *   The theme to source samples from.
+   * @param SerializationInterface $decoder
    */
   public function __construct(SerializationInterface $decoder) {
     $this->decoder = $decoder;
@@ -37,10 +34,12 @@ class SampleDataLoader {
    * @return \Drupal\yaml_content\SampleDataSet
    */
   public function loadDataSet($file) {
-    $data = $this->decoder->decode(file_get_contents($file));
-    $dataset = new SampleDataSet($data);
+    if (!isset($this->data[$file])) {
+      $data = $this->decoder->decode(file_get_contents($file));
+      $this->data[$file] = new SampleDataSet($data);
+    }
 
-    return $dataset;
+    return $this->data[$file];
   }
 
   /**
@@ -162,11 +161,11 @@ class SampleDataLoader {
       substr($lorem_ipsum, $start, $length));
     $lipsum = $capitalize ? ucfirst($lipsum) : $lipsum;
     $missing_char = $length - strlen($lipsum);
-    return $missing_char ? $lipsum . SampleData::getLipsum($missing_char, FALSE) : $lipsum;
+    return $missing_char ? $lipsum . SampleDataLoader::getLipsum($missing_char, FALSE) : $lipsum;
   }
 
   /**
-   * Helper function to get term.
+   * Helper function to get or create a term.
    *
    * @param string $term_name
    *   The name of the term.
