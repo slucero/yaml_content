@@ -44,6 +44,48 @@ class SampleDataLoader {
   }
 
   /**
+   * Load sample data based on type and additional parameters.
+   *
+   * @param string $data_type
+   * @param array $params
+   *
+   * @return mixed|FALSE
+   *   The loaded sample data item or FALSE if unable to load.
+   */
+  public function loadSample(string $data_type, array $params = []) {
+    $sample = FALSE;
+
+    switch ($data_type) {
+      case 'term':
+        $sample = $this->getTerm($params['name'], $params['vocabulary']);
+        break;
+
+      case 'short_text':
+        $sample = $this->getLipsum(20);
+        break;
+
+      case 'rich_text':
+        // @todo Support addition of markup.
+        $sample = $this->getLipsum(200);
+        break;
+
+      case 'image':
+        // @todo Handle missing width and height parameters.
+        $sample = $this->getImage($params['width'], $params['height']);
+        break;
+
+      case 'file':
+        $sample = $this->getFile($params['path'], $params['src']);
+        break;
+
+      default:
+        // @todo Handle unsupported data type.
+    }
+
+    return $sample;
+  }
+
+  /**
    * Helper function to retrieve files.
    *
    * @param string $file_path
