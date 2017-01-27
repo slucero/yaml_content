@@ -18,6 +18,15 @@ use Drupal\sample_data\SampleDataGeneratorBase;
 class ImageGenerator extends SampleDataGeneratorBase {
 
   /**
+   * {@inheritdoc}
+   */
+  public function execute() {
+    $sample = $this->getImage($this->configuration['width'], $this->configuration['height']);
+
+    return $sample;
+  }
+
+  /**
    * Helper function to fetch images.
    *
    * @param string $width

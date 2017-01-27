@@ -13,4 +13,10 @@ use Drupal\Component\Plugin\PluginInspectionInterface;
  */
 interface SampleDataGeneratorInterface extends PluginInspectionInterface {
 
+  /**
+   * A uniform execution function for all plugins to implement.
+   *
+   * @return mixed
+   */
+  public function execute();
 }
