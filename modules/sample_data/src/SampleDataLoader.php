@@ -11,6 +11,11 @@ use Drupal\taxonomy\Entity\Term;
 class SampleDataLoader {
 
   /**
+   * @var DataGeneratorPluginManager
+   */
+  protected $pluginManager;
+
+  /**
    * @var \Drupal\Component\Serialization\SerializationInterface
    */
   protected $decoder;
@@ -22,7 +27,8 @@ class SampleDataLoader {
    *
    * @param SerializationInterface $decoder
    */
-  public function __construct(SerializationInterface $decoder) {
+  public function __construct(DataGeneratorPluginManager $pluginManager, SerializationInterface $decoder) {
+    $this->pluginManager = $pluginManager;
     $this->decoder = $decoder;
   }
 

@@ -5,4 +5,4 @@ services:
     arguments: ['@container.namespaces', '@cache.default', '@module_handler']
   sample_data.loader:
     class: Drupal\sample_data\SampleDataLoader
-    arguments: ['@serialization.yaml']
+    arguments: ['@plugin.manager.sample_data', '@serialization.yaml']
