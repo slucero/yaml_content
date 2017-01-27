@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\yaml_content;
+namespace Drupal\sample_data;
 
 /**
  * Provides methods for retrieving sample data to be used in demo content.

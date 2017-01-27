@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\yaml_content\Plugin\YamlContent;
+namespace Drupal\sample_data\Plugin\YamlContent;
 
 use Drupal\yaml_content\ImportProcessorBase;
-use Drupal\yaml_content\SampleDataLoader;
+use Drupal\sample_data\SampleDataLoader;
 
 /**
  * Import processor to support entity queries and references.
@@ -26,7 +26,7 @@ class SampleDataProcessor extends ImportProcessorBase {
   public function __construct(array $configuration, $plugin_id, $plugin_definition) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->data_loader = \Drupal::service('yaml_content.sample_data_loader');
+    $this->data_loader = \Drupal::service('sample_data.loader');
   }
 
   /**
@@ -61,7 +61,7 @@ class SampleDataProcessor extends ImportProcessorBase {
    *   The name of the data file such that the file name is `<file>.data.yml`.
    *
    * @param array $config
-   * @return \Drupal\yaml_content\SampleDataSet
+   * @return \Drupal\sample_data\SampleDataSet
    */
   protected function loadSampleDataSet(array $config) {
     $path = drupal_get_path('module', $config['module']);

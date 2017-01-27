@@ -1,0 +1,8 @@
+services:
+  plugin.manager.sample_data:
+    class: Drupal\sample_data\DataGeneratorPluginManager
+    parent: default_plugin_manager
+    arguments: ['@container.namespaces', '@cache.default', '@module_handler']
+  sample_data.loader:
+    class: Drupal\sample_data\SampleDataLoader
+    arguments: ['@serialization.yaml']

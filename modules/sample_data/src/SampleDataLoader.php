@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\yaml_content;
+namespace Drupal\sample_data;
 
 use Drupal\Component\Serialization\SerializationInterface;
 use Drupal\taxonomy\Entity\Term;
@@ -31,7 +31,7 @@ class SampleDataLoader {
    *
    * @param $file
    *   The fully qualified filename and path to be loaded.
-   * @return \Drupal\yaml_content\SampleDataSet
+   * @return \Drupal\sample_data\SampleDataSet
    */
   public function loadDataSet($file) {
     if (!isset($this->data[$file])) {
