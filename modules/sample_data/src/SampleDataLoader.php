@@ -60,6 +60,12 @@ class SampleDataLoader {
   public function loadSample(string $data_type, array $params = []) {
     $sample = FALSE;
 
+    $plugin = $this->loadPluginByDataType($data_type, $params);
+
+    if ($plugin) {
+      return $plugin->execute();
+    }
+
     switch ($data_type) {
       case 'term':
         $sample = $this->getTerm($params['name'], $params['vocabulary']);
@@ -88,6 +94,33 @@ class SampleDataLoader {
     }
 
     return $sample;
+  }
+
+  public function loadPluginByDataType($data_type, array $configuration = []) {
+    // @todo Handle data types that cannot be found.
+    $definition = $this->findPluginByDataType($data_type);
+
+    if ($definition) {
+      return $this->loadPlugin($definition->id, $configuration);
+    }
+    else {
+      return FALSE;
+    }
+  }
+
+  public function loadPlugin($plugin_id, array $configuration = []) {
+    // @todo Validate any required contexts or configuration.
+    $plugin = $this->pluginManager->createInstance($plugin_id, $configuration);
+
+    return $plugin;
+  }
+
+  public function findPluginByDataType($data_type) {
+    $plugins = $this->pluginManager->getDefinitionsByDataType($data_type);
+
+    if (!empty($plugins)) {
+      return $plugins;
+    }
   }
 
   /**
