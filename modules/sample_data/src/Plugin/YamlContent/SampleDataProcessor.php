@@ -33,19 +33,20 @@ class SampleDataProcessor extends ImportProcessorBase {
    * {@inheritdoc}
    */
   public function preprocess(array &$import_data) {
-    $context = $this->configuration;
+    $config = $this->configuration;
 
-    if (isset($context['dataset'])) {
-      $data = $this->loadSampleDataSet($context['dataset']);
+    if (isset($config['dataset'])) {
+      $data = $this->loadSampleDataSet($config['dataset']);
 
-      $value = $data->get($context['lookup']);
+      $value = $data->get($config['lookup']);
     }
-    elseif (isset($context['data_type'])) {
-      $params = isset($context['params']) ? $context['params'] : [];
-      $value = $this->data_loader->loadSample($context['data_type'], $params);
+    elseif (isset($config['data_type'])) {
+      $value = $this->data_loader->loadSample($config['data_type'], $config);
     }
 
-    $import_data[] = $value;
+    if ($value) {
+      $import_data[] = $value;
+    }
   }
 
   /**
