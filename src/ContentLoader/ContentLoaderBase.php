@@ -2,6 +2,7 @@
 
 namespace Drupal\yaml_content\ContentLoader;
 
+use Drupal\Component\Serialization\SerializationInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -17,7 +18,7 @@ use \Symfony\Component\Yaml\Parser;
 class ContentLoaderBase implements ContentLoaderInterface {
 
   /**
-   * @var \Symfony\Component\Yaml\Parser
+   * @var SerializationInterface
    */
   protected $parser;
 
@@ -30,11 +31,9 @@ class ContentLoaderBase implements ContentLoaderInterface {
 
   /**
    * ContentLoader constructor.
-   *
-   * @todo Refactor to accept Yaml Parser via dependency injection.
    */
-  public function __construct(EntityTypeManagerInterface $entityTypeManager) {
-    $this->parser = new Parser();
+  public function __construct(EntityTypeManagerInterface $entityTypeManager, SerializationInterface $parser) {
+    $this->parser = $parser;
     $this->entityTypeManager = $entityTypeManager;
   }
 

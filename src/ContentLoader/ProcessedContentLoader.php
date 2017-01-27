@@ -3,6 +3,7 @@
 namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Component\Plugin\PluginManagerInterface;
+use Drupal\Component\Serialization\SerializationInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -24,8 +25,6 @@ class ProcessedContentLoader extends ContentLoaderBase {
    */
   protected $processorPluginManager;
 
-  protected $parsed_content;
-
   /**
    * ProcessedContentLoader constructor.
    *
@@ -34,8 +33,8 @@ class ProcessedContentLoader extends ContentLoaderBase {
    * @param EntityTypeManagerInterface $entityTypeManager
    * @param PluginManagerInterface $processorPluginManager
    */
-  public function __construct(EntityTypeManagerInterface $entityTypeManager, PluginManagerInterface $processorPluginManager) {
-    parent::__construct($entityTypeManager);
+  public function __construct(EntityTypeManagerInterface $entityTypeManager, SerializationInterface $parser, PluginManagerInterface $processorPluginManager) {
+    parent::__construct($entityTypeManager, $parser);
 
     $this->processorPluginManager = $processorPluginManager;
   }
