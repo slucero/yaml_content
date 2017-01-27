@@ -12,7 +12,7 @@ use Drupal\sample_data\SampleDataGeneratorBase;
  * @SampleDataGenerator(
  *   id = "image_generator",
  *   title = @Translation("Sample image generator"),
- *   description= = @Translation("A basic generator for placeholder images.")
+ *   description = @Translation("A basic generator for placeholder images.")
  * )
  */
 class ImageGenerator extends SampleDataGeneratorBase {
