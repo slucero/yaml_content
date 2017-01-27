@@ -59,7 +59,8 @@ function drush_yaml_content_import($directory, $file = NULL) {
   // @todo Verify files before loading for import.
   foreach ($import_files as $file) {
     drush_print_r('Importing content: ' . $file);
-    $loaded = $loader->loadContent($file);
+    $loader->parseContent($file);
+    $loaded = $loader->loadContent();
     drush_print_r('Imported ' . count($loaded) . ' items.');
   }
 }
@@ -106,7 +107,8 @@ function drush_yaml_content_import_module($module, $file = NULL) {
   // @todo Verify files before loading for import.
   foreach ($files as $filename => $file) {
     drush_print_r('Importing content: ' . $filename);
-    $loaded = $loader->loadContent($file->filename);
+    $loader->parseContent($file->filename);
+    $loaded = $loader->loadContent();
     drush_print_r('Imported ' . count($loaded) . ' items.');
   }
 }

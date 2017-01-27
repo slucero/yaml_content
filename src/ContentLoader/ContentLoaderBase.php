@@ -61,14 +61,16 @@ class ContentLoaderBase implements ContentLoaderInterface {
   /**
    * {@inheritdoc}
    */
-  public function loadContent($content_file, bool $save = TRUE) {
+  public function loadContent(bool $save = TRUE) {
     // @todo Should this method require the already parsed content?
-    $content = $this->parseContent($content_file);
+    if (!isset($this->parsed_content)) {
+      // @todo Warn about content not being parsed.
+    }
 
     $loaded_content = array();
 
     // Create each entity defined in the yaml content.
-    foreach ($content as $content_item) {
+    foreach ($this->parsed_content as $content_item) {
       $entity = $this->importEntity($content_item);
       if ($save) {
         $entity->save();

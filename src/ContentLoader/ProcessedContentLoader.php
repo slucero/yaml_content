@@ -43,6 +43,20 @@ class ProcessedContentLoader extends ContentLoaderBase {
   /**
    * {@inheritdoc}
    */
+  public function loadContent(bool $save = TRUE) {
+    $content_context = [];
+    $this->preprocessData($this->parsed_content, $content_context);
+
+    $loaded = parent::loadContent($save);
+
+    $this->postprocessData($this->parsed_content, $loaded, $content_context);
+
+    return $loaded;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function importEntity(array $content_data) {
     // Preprocess the content data.
     $entity_context = [];
