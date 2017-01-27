@@ -1,0 +1,11 @@
+{
+    "name": "drupal/yaml_content",
+    "description": "Demo content generator using yaml content templates.",
+    "type": "drupal-module",
+    "homepage": "https://www.drupal.org/sandbox/slucero/2820845",
+    "license": "GPL-2.0+",
+    "minimum-stability": "dev",
+    "require": {
+        "joshtronic/php-loremipsum": "^1.0"
+    }
+}
