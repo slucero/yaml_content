@@ -52,7 +52,7 @@ class ContentLoaderBase implements ContentLoaderInterface {
   public function parseContent($content_file) {
     // @todo Handle parsing failures.
     $this->content_file = $this->path . '/' . $content_file;
-    $this->parsed_content = $this->parser->parse(file_get_contents($this->content_file));
+    $this->parsed_content = $this->parser->decode(file_get_contents($this->content_file));
 
     return $this->parsed_content;
   }
