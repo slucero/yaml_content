@@ -44,6 +44,13 @@ class ContentLoader implements ContentLoaderInterface {
   protected $parsedContent;
 
   /**
+   * Boolean value of whether other not to update existing content.
+   *
+   * @var bool
+   */
+  protected $existenceCheck;
+
+  /**
    * ContentLoader constructor.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -70,6 +77,26 @@ class ContentLoader implements ContentLoaderInterface {
   }
 
   /**
+   * Returns whether or not the system should check for previous demo content.
+   *
+   * @return bool
+   *   The true/false value of existence check.
+   */
+  public function existenceCheck() {
+    return $this->existenceCheck;
+  }
+
+  /**
+   * Set the whether or not the system should check for previous demo content.
+   *
+   * @param bool $existence_check
+   *   The true/false value of existence check.
+   */
+  public function setExistenceCheck($existence_check) {
+    $this->existenceCheck = $existence_check;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function parseContent($content_file) {
@@ -82,7 +109,8 @@ class ContentLoader implements ContentLoaderInterface {
   /**
    * {@inheritdoc}
    */
-  public function loadContent($content_file) {
+  public function loadContent($content_file, $skip_existence_check = TRUE) {
+    $this->setExistenceCheck($skip_existence_check);
     $content_data = $this->parseContent($content_file);
 
     $loaded_content = [];
@@ -129,8 +157,18 @@ class ContentLoader implements ContentLoaderInterface {
       }
     };
 
-    // Create entity.
-    $entity = $entity_handler->create($properties);
+    // Create the entity only if we do not want to check for existing nodes.
+    if (!$this->existenceCheck()) {
+      $entity = $entity_handler->create($properties);
+    }
+    else {
+      $entity = $this->entityExists($entity_type, $content_data);
+
+      // Create the entity if no existing one was found.
+      if ($entity === FALSE) {
+        $entity = $entity_handler->create($properties);
+      }
+    }
 
     // Populate fields.
     foreach ($fields as $field_name => $field_data) {
@@ -283,5 +321,49 @@ class ContentLoader implements ContentLoaderInterface {
 
     return $entity_ids;
   }
+
+  /**
+   * Query if a target entity already exists and should be updated.
+   *
+   * @param string $entity_type
+   *   The type of entity being imported.
+   * @param array $content_data
+   *   The import content structure representing the entity being searched for.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface|false
+   *   Return a matching entity if one is found, or FALSE otherwise.
+   */
+  protected function entityExists($entity_type, array $content_data) {
+    // Load entity type handler.
+    $entity_handler = $this->entityTypeManager->getStorage($entity_type);
+
+    // Some entities require special handling to determine if it exists.
+    switch ($entity_type) {
+      // Always create new paragraphs since they're not reusable.
+      case 'paragraph':
+        break;
+
+      case 'media':
+        // @todo Add special handling to check file name or path.
+        break;
+
+      default:
+        $query = \Drupal::entityQuery($entity_type);
+        foreach ($content_data as $key => $value) {
+          if ($key != 'entity' && !is_array($value)) {
+            $query->condition($key, $value);
+          }
+        }
+        $entity_ids = $query->execute();
+
+        if ($entity_ids) {
+          $entity_id = array_shift($entity_ids);
+          $entity = $entity_handler->load($entity_id);
+        }
+    }
+
+    return isset($entity) ? $entity : FALSE;
+  }
+
 }
 
