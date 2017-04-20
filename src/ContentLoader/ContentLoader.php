@@ -206,22 +206,51 @@ class ContentLoader implements ContentLoaderInterface {
    * @todo Handle field data types more dynamically with typed data.
    */
   protected function populateField($field, array &$field_data) {
-    // Iterate over each value.
-    foreach ($field_data as &$field_item) {
+    // Get the field cardinality to determine whether or not a value should be
+    // 'set' or 'appended' to.
+    $cardinality = $field->getFieldDefinition()
+      ->getFieldStorageDefinition()
+      ->getCardinality();
 
-      // Preprocess field data.
-      $this->preprocessFieldData($field, $field_item);
+    // Gets the count of the field data array.
+    $field_data_count = count($field_data);
 
-      $is_reference = isset($field_item['entity']);
+    // If the cardinality is 0, throw an exception.
+    if (!$cardinality) {
+      throw new \InvalidArgumentException("'{$field->getName()}' cannot hold any values.");
+    }
 
+    // If the number of field content is greater than allowed, throw exception.
+    if ($cardinality > 0 && $field_data_count > $cardinality) {
+      throw new \InvalidArgumentException("'{$field->getname()}' cannot hold more than $cardinality values. $field_data_count values were parsed from the YAML file.");
+    }
+
+    // Iterate over each field data value and process it.
+    foreach ($field_data as &$item_data) {
+      // Preprocess the field data.
+      $this->preprocessFieldData($field, $item_data);
+
+      // Check if the field is a reference field. If so, build the entity ref.
+      $is_reference = isset($item_data['entity']);
       if ($is_reference) {
-        // @todo Dynamically determine the type of reference.
-
-        // Create entity.
-        $field_item = $this->buildEntity($field_item['entity'], $field_item);
+        // Build the reference entity.
+        $field_item = $this->buildEntity($item_data['entity'], $item_data);
+      }
+      else {
+        $field_item = $item_data;
       }
 
-      $field->appendItem($field_item);
+      // If the cardinality is set to 1, set the field value directly.
+      if ($cardinality == 1) {
+        $field->setValue($field_item);
+
+        // @todo Warn if additional item data is available for population.
+        break;
+      }
+      else {
+        // Otherwise, append the item to the multi-value field.
+        $field->appendItem($field_item);
+      }
     }
   }
 
