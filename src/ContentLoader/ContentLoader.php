@@ -7,6 +7,8 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemList;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\TypedData\Exception\MissingDataException;
+use Drupal\node\Entity\Node;
+use Drupal\taxonomy\Entity\Term;
 use Symfony\Component\Yaml\Parser;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
@@ -282,23 +284,23 @@ class ContentLoader implements ContentLoaderInterface {
    *
    * ```yaml
    *   '#process':
-   *     callable: '<callable string>'
+   *     callback: '<callback string>'
    *     args:
-   *       - <callable argument 1>
-   *       - <callable argument 2>
+   *       - <callback argument 1>
+   *       - <callback argument 2>
    *       - <...>
    * ```
    *
-   * The callable function receives the following arguments:
+   * The callback function receives the following arguments:
    *
    *   - `$field`
    *   - `$field_data`
-   *   - <callable argument 1>
-   *   - <callable argument 2>
+   *   - <callback argument 1>
+   *   - <callback argument 2>
    *   - <...>
    *
    * The `$field_data` array is passed by reference and may be modified directly
-   * by the callable implementation.
+   * by the callback implementation.
    *
    * @param object $field
    *   The entity field object.
@@ -306,17 +308,27 @@ class ContentLoader implements ContentLoaderInterface {
    *   The field data.
    */
   protected function preprocessFieldData($field, array &$field_data) {
-    // Check for a callable processor defined at the value level.
-    if (isset($field_data['#process'])) {
-      $callable = $field_data['#process']['callable'];
-
-      if (is_callable($callable)) {
-        // Append callback arguments to field object and value data.
-        $args = array_merge([$field, &$field_data], $field_data['#process']['args'] ?? []);
-        call_user_func_array($callable, $args);
+    // Check for a callback processor defined at the value level.
+    if (isset($field_data['#process']) && isset($field_data['#process']['callback'])) {
+      $callback_type = $field_data['#process']['callback'];
+      $dependency = $field_data['#process']['dependency'];
+      $process_method = $callback_type . 'EntityLoad';
+      if ($dependency) {
+        $process_dependency = new ContentLoader($this->entityTypeManager);
+        $process_dependency->setContentPath($this->path);
+        $process_dependency->loadContent($dependency, $this->existenceCheck());
       }
+      // Check to see if this class has a method in the format of
+      // '{fieldType}EntityLoad'.
+      if (method_exists($this, $process_method)) {
+        // Append callback arguments to field object and value data.
+        $args = array_merge([$field, &$field_data], isset($field_data['#process']['args']) ? $field_data['#process']['args'] : []);
+        // Pass in the arguments and call the method.
+        call_user_func_array([$this, $process_method], $args);
+      }
+      // If the method does not exist, throw an exception.
       else {
-        throw new ConfigValueException('Uncallable processor provided: ' . $callable);
+        throw new ConfigValueException('Unknown type specified: ' . $callback_type);
       }
     }
   }
@@ -341,8 +353,8 @@ class ContentLoader implements ContentLoaderInterface {
    *
    * @see ContentLoader::preprocessFieldData()
    */
-  static function loadReference($field, array &$field_data, $entity_type, array $filter_params) {
-
+  protected function referenceEntityLoad($field, array &$field_data, $entity_type, array $filter_params) {
+    // Use query factory to create a query object for the node of entity_type.
     $query = \Drupal::entityQuery($entity_type);
 
     // Apply filter parameters.
@@ -351,6 +363,19 @@ class ContentLoader implements ContentLoaderInterface {
     }
 
     $entity_ids = $query->execute();
+
+    if (empty($entity_ids)) {
+      if ($entity_type == 'taxonomy_term') {
+        $term = Term::create($filter_params);
+        $term->save();
+        $entity_ids = [$term->id()];
+      }
+      elseif ($entity_type == 'node') {
+        $node = Node::create($filter_params);
+        $node->save();
+        $entity_ids = [$node->id()];
+      }
+    }
 
     if (empty($entity_ids)) {
       // Build parameter output description for error message.
