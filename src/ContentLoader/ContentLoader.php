@@ -163,6 +163,10 @@ class ContentLoader implements ContentLoaderInterface {
       }
     };
 
+    // If it is a 'user' entity, append a timestamp to make the username unique.
+    if ($entity_type == 'user' && isset($properties['name'][0]['value'])) {
+      $properties['name'][0]['value'] .= '_' . time();
+    }
     // Create the entity only if we do not want to check for existing nodes.
     if (!$this->existenceCheck()) {
       $entity = $entity_handler->create($properties);
