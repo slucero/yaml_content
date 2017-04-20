@@ -225,6 +225,27 @@ class ContentLoader implements ContentLoaderInterface {
       throw new \InvalidArgumentException("'{$field->getname()}' cannot hold more than $cardinality values. $field_data_count values were parsed from the YAML file.");
     }
 
+    // If we're updating content in-place, empty the field before population.
+    if ($this->existenceCheck() && !$field->isEmpty()) {
+      // Trigger delete callbacks on each field item.
+      $field->delete();
+
+      // Special handling for non-reusable entity reference values.
+      if ($field instanceof EntityReferenceFieldItemList) {
+        // Test if this is a paragraph field.
+        $target_type = $field->getFieldDefinition()->getSetting('target_type');
+        if ($target_type == 'paragraph') {
+          $entities = $field->referencedEntities();
+          foreach ($entities as $entity) {
+            $entity->delete();
+          }
+        }
+      }
+
+      // Empty out the field's list of items.
+      $field->setValue([]);
+    }
+
     // Iterate over each field data value and process it.
     foreach ($field_data as &$item_data) {
       // Preprocess the field data.
