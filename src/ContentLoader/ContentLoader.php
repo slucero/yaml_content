@@ -103,6 +103,10 @@ class ContentLoader implements ContentLoaderInterface {
     $this->contentFile = $this->path . '/' . $content_file;
     $this->parsedContent = $this->parser->parse(file_get_contents($this->contentFile));
 
+    // Never leave this as null, even on a failed parsing process.
+    // @todo Output a warning for empty content files or failed parsing.
+    $this->parsedContent = isset($this->parsedContent) ? $this->parsedContent : [];
+
     return $this->parsedContent;
   }
 
