@@ -104,19 +104,22 @@ class ContentLoader implements ContentLoaderInterface {
   /**
    * Build an entity from the provided content data.
    *
-   * @param $entity_type
+   * @param string $entity_type
+   *   The entity type.
    * @param array $content_data
+   *   The array of content data to be parsed.
+   *
    * @return \Drupal\Core\Entity\EntityInterface
+   *   The created entity from the parsed content data.
    */
   public function buildEntity($entity_type, array $content_data) {
     // Load entity type handler.
-    $entity_handler = \Drupal::entityTypeManager()->getStorage($entity_type);
+    $entity_handler = $this->entityTypeManager->getStorage($entity_type);
 
     // Verify required content data.
-
     // Parse properties for creation and fields for processing.
-    $properties = array();
-    $fields = array();
+    $properties = [];
+    $fields = [];
     foreach (array_keys($content_data) as $key) {
       if (strpos($key, 'field') === 0) {
         $fields[$key] = $content_data[$key];
@@ -153,8 +156,10 @@ class ContentLoader implements ContentLoaderInterface {
   /**
    * Populate field content into the provided field.
    *
-   * @param $field
+   * @param object $field
+   *   The entity field object.
    * @param array $field_data
+   *   The field data.
    *
    * @todo Handle field data types more dynamically with typed data.
    */
@@ -203,8 +208,10 @@ class ContentLoader implements ContentLoaderInterface {
    * The `$field_data` array is passed by reference and may be modified directly
    * by the callable implementation.
    *
-   * @param $field
+   * @param object $field
+   *   The entity field object.
    * @param array $field_data
+   *   The field data.
    */
   protected function preprocessFieldData($field, array &$field_data) {
     // Check for a callable processor defined at the value level.
@@ -225,14 +232,22 @@ class ContentLoader implements ContentLoaderInterface {
   /**
    * Processor function for querying and loading a referenced entity.
    *
-   * @param $field
+   * @param object $field
+   *   The entity field object.
    * @param array $field_data
-   * @param $entity_type
+   *   The field data.
+   * @param string $entity_type
+   *   The entity type.
    * @param array $filter_params
-   * @return array|int
-   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
+   *   The filters for the query conditions.
    *
-   * @see ChapterLoader::preprocessFieldData().
+   * @return array|int
+   *   The entity id.
+   *
+   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
+   *   Error for missing data.
+   *
+   * @see ContentLoader::preprocessFieldData()
    */
   static function loadReference($field, array &$field_data, $entity_type, array $filter_params) {
 
@@ -255,7 +270,7 @@ class ContentLoader implements ContentLoaderInterface {
         $error_params[] = sprintf("  '%s' => '%s',", $key, $value);
       }
       $error_params[] = ']';
-      $param_output = join("\n", $error_params);
+      $param_output = implode("\n", $error_params);
 
       throw new MissingDataException(__CLASS__ . ': Unable to find referenced content: ' . $param_output);
     }

@@ -22,9 +22,9 @@ interface ContentLoaderInterface {
   /**
    * Load all demo content for this loader.
    *
-   * @param $content_file
+   * @param string $content_file
    *   A file name for the content file to be loaded. The file is assumed to be
-   *   located within cfr_demo_content/content/.
+   *   located within a directory set by `setPath()`.
    *
    * @return array
    *   An array of generated entity Ids.
@@ -34,10 +34,15 @@ interface ContentLoaderInterface {
   /**
    * Build an entity from the provided content data.
    *
-   * @param $entity_type
+   * @param string $entity_type
+   *   The entity type.
    * @param array $content_data
+   *   The parsed content data.
+   *
    * @return \Drupal\Core\Entity\EntityInterface
+   *   The entity returned after building from the parsed content data.
    */
   public function buildEntity($entity_type, array $content_data);
 
 }
+
