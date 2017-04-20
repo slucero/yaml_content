@@ -1,0 +1,4 @@
+services:
+  yaml_content.contentloader:
+    class: Drupal\yaml_content\ContentLoader\ContentLoader
+    arguments: ['@entity_type.manager', '@module_handler']

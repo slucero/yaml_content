@@ -3,29 +3,67 @@
 namespace Drupal\yaml_content\ContentLoader;
 
 use Drupal\Core\Config\ConfigValueException;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemList;
 use Drupal\Core\Field\FieldException;
 use Drupal\Core\TypedData\Exception\MissingDataException;
-use \Symfony\Component\Yaml\Parser;
+use Symfony\Component\Yaml\Parser;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 
+/**
+ * ContentLoader class for parsing and importing YAML content.
+ */
 class ContentLoader implements ContentLoaderInterface {
 
+  /**
+   * The entity type manager interface.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
+   * The module handler interface for invoking any hooks.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * YAML parser.
+   *
+   * @var \Symfony\Component\Yaml\Parser
+   */
   protected $parser;
 
-  protected $parsed_content;
+  /**
+   * The parsed content.
+   *
+   * @var mixed
+   */
+  protected $parsedContent;
 
   /**
    * ContentLoader constructor.
    *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   Entity type manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   Drupal module handler service.
+   *
    * @todo Register via services.
    */
-  public function __construct() {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, ModuleHandlerInterface $module_handler) {
     $this->parser = new Parser();
+    $this->entityTypeManager = $entity_type_manager;
+    $this->moduleHandler = $module_handler;
   }
 
   /**
    * Set a path prefix for all content files to be loaded from.
    *
    * @param string $path
+   *   The path for where all content files will be loaded from.
    */
   public function setContentPath($path) {
     $this->path = $path;
@@ -35,26 +73,30 @@ class ContentLoader implements ContentLoaderInterface {
    * {@inheritdoc}
    */
   public function parseContent($content_file) {
-    $this->content_file = $this->path . '/' . $content_file;
-    $this->parsed_content = $this->parser->parse(file_get_contents($this->content_file));
+    $this->contentFile = $this->path . '/' . $content_file;
+    $this->parsedContent = $this->parser->parse(file_get_contents($this->contentFile));
 
-    return $this->parsed_content;
+    return $this->parsedContent;
   }
 
   /**
    * {@inheritdoc}
    */
   public function loadContent($content_file) {
-    $content = $this->parseContent($content_file);
+    $content_data = $this->parseContent($content_file);
 
-    $loaded_content = array();
+    $loaded_content = [];
 
     // Create each entity defined in the yml content.
-    foreach ($content as $content_item) {
+    foreach ($content_data as $content_item) {
       $entity = $this->buildEntity($content_item['entity'], $content_item);
       $entity->save();
-      $loaded_content[] = $entity->id();
+      $loaded_content[] = $entity;
     }
+
+    // Trigger a hook for post-import processing.
+    $this->moduleHandler->invokeAll('yaml_content_post_import',
+      [$content_file, &$loaded_content, $content_data]);
 
     return $loaded_content;
   }
@@ -98,10 +140,10 @@ class ContentLoader implements ContentLoaderInterface {
         }
       }
       catch (MissingDataException $exception) {
-        watchdog_exception('cfr_demo_content', $exception);
+        watchdog_exception('yaml_content', $exception);
       }
       catch (ConfigValueException $exception) {
-        watchdog_exception('cfr_demo_content', $exception);
+        watchdog_exception('yaml_content', $exception);
       }
     }
 
@@ -135,7 +177,6 @@ class ContentLoader implements ContentLoaderInterface {
       $field->appendItem($field_item);
     }
   }
-
 
   /**
    * Run any designated preprocessors on the provided field data.
@@ -228,3 +269,4 @@ class ContentLoader implements ContentLoaderInterface {
     return $entity_ids;
   }
 }
+

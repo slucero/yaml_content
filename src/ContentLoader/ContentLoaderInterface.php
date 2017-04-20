@@ -2,20 +2,22 @@
 
 namespace Drupal\yaml_content\ContentLoader;
 
+/**
+ * Interface for loading and parsing content from YAML files.
+ */
 interface ContentLoaderInterface {
-
-  public function __construct();
 
   /**
    * Parse the given yaml content file into an array.
    *
-   * @param $content_file
+   * @param string $content_file
    *   A file name for the content file to be loaded. The file is assumed to be
-   *   located within cfr_demo_content/content/.
+   *   located within a directory set by `setPath()`.
+   *
    * @return array
    *   The parsed content array from the file.
    */
-  function parseContent($content_file);
+  public function parseContent($content_file);
 
   /**
    * Load all demo content for this loader.
@@ -27,7 +29,7 @@ interface ContentLoaderInterface {
    * @return array
    *   An array of generated entity Ids.
    */
-  function loadContent($content_file);
+  public function loadContent($content_file);
 
   /**
    * Build an entity from the provided content data.
@@ -36,5 +38,6 @@ interface ContentLoaderInterface {
    * @param array $content_data
    * @return \Drupal\Core\Entity\EntityInterface
    */
-  function buildEntity($entity_type, array $content_data);
+  public function buildEntity($entity_type, array $content_data);
+
 }
