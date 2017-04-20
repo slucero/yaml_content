@@ -402,6 +402,63 @@ class ContentLoader implements ContentLoaderInterface {
   }
 
   /**
+   * Processor function for processing and loading a file attachment.
+   *
+   * @param object $field
+   *   The entity field object.
+   * @param array $field_data
+   *   The field data.
+   * @param string $entity_type
+   *   The entity type.
+   * @param array $filter_params
+   *   The filters for the query conditions.
+   *
+   * @return array|int
+   *   The entity id.
+   *
+   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
+   *   Error for missing data.
+   *
+   * @see ContentLoader::preprocessFieldData()
+   */
+  protected function fileEntityLoad($field, array &$field_data, $entity_type, array $filter_params) {
+    if ($filter_params['type'] == 'module') {
+      $filename = $filter_params['filename'];
+      $directory = '/data_files/';
+      // If the entity type is an image, look in to the /images directory.
+      if ($entity_type == 'image') {
+        $directory = '/images/';
+      }
+      $output = file_get_contents($this->path . $directory . $filename);
+      if ($output !== FALSE) {
+        // Save the file data. Do not overwrite files if they already exist.
+        $file = file_save_data($output, 'public://' . $filename, FILE_EXISTS_RENAME);
+        // Use the newly created file id as the value.
+        $field_data['target_id'] = $file->id();
+
+        // Remove process data to avoid issues when setting the value.
+        unset($field_data['#process']);
+
+        return $file->id();
+      }
+      else {
+        // Build parameter output description for error message.
+        $error_params = [
+          '[',
+          '  "entity_type" => ' . $entity_type . ',',
+        ];
+        foreach ($filter_params as $key => $value) {
+          $error_params[] = sprintf("  '%s' => '%s',", $key, $value);
+        }
+        $error_params[] = ']';
+        $param_output = implode("\n", $error_params);
+
+        throw new MissingDataException(__CLASS__ . ': Unable to process file content: ' . $param_output);
+      }
+    }
+  }
+
+  /**
    * Query if a target entity already exists and should be updated.
    *
    * @param string $entity_type
